@@ -1,0 +1,600 @@
+export let js = "document.addEventListener('DOMContentLoaded', () => {
+    // Elements
+    const generateBtn = document.getElementById('generate-btn');
+    const promptInput = document.getElementById('prompt-input');
+    const configTempo = document.getElementById('config-tempo');
+    const tempoVal = document.getElementById('tempo-val');
+    const configSwing = document.getElementById('config-swing');
+    const swingVal = document.getElementById('swing-val');
+    const configKey = document.getElementById('config-key');
+    const configStructure = document.getElementById('config-structure');
+    const configGenre = document.getElementById('config-genre');
+    const configMood = document.getElementById('config-mood');
+    const configNotes = document.getElementById('config-notes');
+    const codeText = document.getElementById('code-text');
+    const renderCodeBtn = document.getElementById('render-code-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const revisionRequest = document.getElementById('revision-request');
+    const reviseBtn = document.getElementById('revise-btn');
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    const saveConfigBtn = document.getElementById('save-config-btn');
+    const lineNumbers = document.getElementById('line-numbers');
+    const terminalOutput = document.getElementById('terminal-output');
+    const clearTerminalBtn = document.getElementById('clear-terminal');
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const monitorStatus = document.getElementById('monitor-status');
+    const downloadAudioBtn = document.getElementById('download-audio-btn');
+    const downloadFormat = document.getElementById('download-format');
+    const audioPlayer = document.getElementById('audio-player');
+    const statusText = document.getElementById('status-text');
+    const statusLamp = document.querySelector('.status-lamp');
+    const visualizerCanvas = document.getElementById('waveform-visualizer');
+
+    // State Variables
+    let audioUrl = null;
+    let isPlaying = false;
+    const visualizerCtx = visualizerCanvas.getContext('2d');
+    let animationFrameId = null;
+    let activeBrief = '';
+
+    // Initialize Canvas Visualizer Size
+    function resizeCanvas() {
+        visualizerCanvas.width = visualizerCanvas.parentElement.clientWidth;
+        visualizerCanvas.height = visualizerCanvas.parentElement.clientHeight;
+        drawStaticWave();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 100);
+
+    // Synchronize slider text values
+    configTempo.addEventListener('input', (e) => {
+        tempoVal.textContent = e.target.value;
+    });
+    configSwing.addEventListener('input', (e) => {
+        swingVal.textContent = parseFloat(e.target.value).toFixed(1);
+    });
+
+    // Populate Dynamic Tags
+    async function loadTags() {
+        try {
+            const res = await fetch('/tags');
+            if (!res.ok) return;
+            const data = await res.json();
+            
+            if (data.key) {
+                data.key.forEach(k => {
+                    const opt = document.createElement('option');
+                    opt.value = k;
+                    opt.textContent = k;
+                    configKey.appendChild(opt);
+                });
+            }
+            if (data.structure) {
+                data.structure.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    configStructure.appendChild(opt);
+                });
+            }
+            if (data.genre && configGenre) {
+                data.genre.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g;
+                    opt.textContent = g;
+                    configGenre.appendChild(opt);
+                });
+            }
+            if (data.mood && configMood) {
+                data.mood.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    configMood.appendChild(opt);
+                });
+            }
+            if (data.instruments) {
+                document.querySelectorAll('.channel-inst').forEach(select => {
+                    const originalVal = select.value;
+                    select.innerHTML = '';
+                    data.instruments.forEach(inst => {
+                        const opt = document.createElement('option');
+                        opt.value = inst;
+                        opt.textContent = inst;
+                        select.appendChild(opt);
+                    });
+                    if (originalVal && [...select.options].some(o => o.value === originalVal)) {
+                        select.value = originalVal;
+                    }
+                });
+            }
+        } catch (e) {
+            logTerminal('Error fetching DAW tag lists.', 'error');
+        }
+    }
+    loadTags();
+
+    // Format Downloader handler
+    function updateDownloadLink() {
+        if (!audioUrl) return;
+        const fmt = downloadFormat.value;
+        downloadAudioBtn.href = `/download/audio?format=${fmt}&t=${Date.now()}`;
+        const ext = fmt === 'midi' ? 'mid' : fmt;
+        downloadAudioBtn.download = `composition.${ext}`;
+    }
+    downloadFormat.addEventListener('change', updateDownloadLink);
+
+    // Editor Synchronized Line Numbers
+    function updateLineNumbers() {
+        const lines = codeText.value.split('\n');
+        lineNumbers.innerHTML = '';
+        for (let i = 1; i <= lines.length; i++) {
+            const span = document.createElement('span');
+            span.textContent = i;
+            lineNumbers.appendChild(span);
+        }
+    }
+    codeText.addEventListener('input', updateLineNumbers);
+    codeText.addEventListener('scroll', () => {
+        lineNumbers.scrollTop = codeText.scrollTop;
+    });
+    updateLineNumbers();
+
+    // Sesi Terminal Logging
+    function logTerminal(message, type = 'system') {
+        const time = new Date().toLocaleTimeString();
+        const span = document.createElement('div');
+        span.className = type + '-msg';
+        span.textContent = `[${time}] ${message}`;
+        terminalOutput.appendChild(span);
+        terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    }
+
+    clearTerminalBtn.addEventListener('click', () => {
+        terminalOutput.innerHTML = '';
+    });
+
+    // Preset tag buttons
+    const presets = {
+        second_love: 'A beautiful song that captures the feeling of falling in love for the second time.',
+        stadium_anthem: 'An epic, high-energy entrance theme for a championship football game.',
+        vaporwave: 'A dreamy vaporwave track with a cassette vibe, dynamic neon cover art, and a saxophone lead.',
+        ceremonious_march: 'A stately processional fanfare and march featuring trumpets, French horns, trombones, strings, and timpani.',
+        disco_song: 'A classic 4-bar disco groove featuring electric bass, Rhodes stabs, synth lead, and handclaps.'
+    };
+    document.querySelectorAll('.idea-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const key = btn.getAttribute('data-preset');
+            if (presets[key]) {
+                promptInput.value = presets[key];
+                promptInput.focus();
+            }
+        });
+    });
+
+    // Build the request configuration from Mixer/sliders
+    function buildPayloadConfig() {
+        const instruments = [];
+        document.querySelectorAll('.mixer-channel').forEach(ch => {
+            const name = ch.getAttribute('data-channel');
+            const isMuted = ch.querySelector('.mute-btn').classList.contains('active');
+            const vol = ch.querySelector('.channel-vol').value;
+            const instSelect = ch.querySelector('.channel-inst');
+            const panSelect = ch.querySelector('.channel-pan');
+            
+            if (!isMuted) {
+                const info = {
+                    track: name,
+                    volume: vol,
+                    pan: panSelect ? panSelect.value : '0.0',
+                    instrument: instSelect ? instSelect.value : 'Drums'
+                };
+                instruments.push(JSON.stringify(info));
+            }
+        });
+
+        return {
+            tempo: configTempo.value,
+            swing: configSwing.value,
+            key: configKey.value,
+            structure: configStructure.value,
+            genre: configGenre ? configGenre.value : '',
+            mood: configMood ? configMood.value : '',
+            instruments: instruments.join(', '),
+            notes: configNotes.value.trim()
+        };
+    }
+
+    // Toggle mute buttons
+    document.querySelectorAll('.mute-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('active');
+        });
+    });
+
+    // Set UI loading state
+    function setLoading(isLoading, statusMsg = 'DAW Engine Idle') {
+        statusText.textContent = statusMsg;
+        if (isLoading) {
+            generateBtn.disabled = true;
+            renderCodeBtn.disabled = true;
+            reviseBtn.disabled = true;
+            regenerateBtn.disabled = true;
+            statusLamp.className = 'status-lamp working';
+            generateBtn.querySelector('.btn-text').classList.add('hidden');
+            generateBtn.querySelector('.btn-loader').classList.remove('hidden');
+        } else {
+            generateBtn.disabled = false;
+            renderCodeBtn.disabled = false;
+            reviseBtn.disabled = false;
+            regenerateBtn.disabled = false;
+            statusLamp.className = 'status-lamp';
+            generateBtn.querySelector('.btn-text').classList.remove('hidden');
+            generateBtn.querySelector('.btn-loader').classList.add('hidden');
+        }
+    }
+
+    // Audio Renderer Reload
+    async function loadAudioOutput() {
+        monitorStatus.textContent = 'Rendering audio preview...';
+        logTerminal('Compiling generated track to WAV audio...', 'system');
+        
+        try {
+            const checkUrl = `/download/audio?t=${Date.now()}`;
+            const res = await fetch(checkUrl);
+            if (!res.ok) throw new Error('Audio compile failure');
+
+            const blob = await res.blob();
+            if (audioUrl) {
+                window.URL.revokeObjectURL(audioUrl);
+            }
+            audioUrl = window.URL.createObjectURL(blob);
+            audioPlayer.src = audioUrl;
+            
+            playPauseBtn.disabled = false;
+            downloadAudioBtn.disabled = false;
+            updateDownloadLink();
+            downloadAudioBtn.removeAttribute('disabled');
+            
+            monitorStatus.textContent = 'Track Loaded & Ready';
+            logTerminal('Track rendered successfully. Audio loaded to studio monitor.', 'success');
+            drawStaticWave();
+        } catch (e) {
+            monitorStatus.textContent = 'Render Failed';
+            logTerminal('Error rendering WAV audio. Sesi compiler failed.', 'error');
+        }
+    }
+
+    // Compose Trigger
+    generateBtn.addEventListener('click', async () => {
+        const prompt = promptInput.value.trim();
+        if (!prompt) return;
+
+        setLoading(true, 'Composing Track...');
+        logTerminal(`Sending prompt to composer agent: \"${prompt}\"`, 'system');
+
+        try {
+            const config = buildPayloadConfig();
+            const response = await fetch('/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt, config })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || 'Server error');
+            }
+
+            const data = await response.json();
+            activeBrief = data.brief;
+            codeText.value = data.code;
+            updateLineNumbers();
+            
+            logTerminal('Sesi code generated successfully.', 'success');
+            
+            // Render audio
+            await loadAudioOutput();
+        } catch (err) {
+            logTerminal(err.message, 'error');
+            setLoading(false, 'DAW Engine Failed');
+        } finally {
+            setLoading(false, 'DAW Engine Idle');
+        }
+    });
+
+    // Code Compile and Re-render
+    renderCodeBtn.addEventListener('click', async () => {
+        const code = codeText.value.trim();
+        if (!code) return;
+
+        setLoading(true, 'Compiling Code...');
+        logTerminal('Compiling modified Sesi orchestration script...', 'system');
+
+        try {
+            const response = await fetch('/render-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, brief: activeBrief })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || 'Compiler error');
+            }
+
+            logTerminal('Compilation finished with exit code 0.', 'success');
+            await loadAudioOutput();
+        } catch (err) {
+            logTerminal(`Compilation Error: ${err.message}`, 'error');
+        } finally {
+            setLoading(false, 'DAW Engine Idle');
+        }
+    });
+
+    // Revision applying
+    reviseBtn.addEventListener('click', async () => {
+        const reqText = revisionRequest.value.trim();
+        const code = codeText.value.trim();
+        if (!reqText || !code) return;
+
+        setLoading(true, 'Applying Revisions...');
+        logTerminal(`Applying instruction: \"${reqText}\"`, 'system');
+
+        try {
+            const response = await fetch('/revise', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code: code,
+                    brief: activeBrief,
+                    request: reqText
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || 'Revision error');
+            }
+
+            const data = await response.json();
+            codeText.value = data.code;
+            updateLineNumbers();
+            
+            logTerminal('Sesi Music Assistant successfully refactored script.', 'success');
+            revisionRequest.value = '';
+            
+            await loadAudioOutput();
+        } catch (err) {
+            logTerminal(`Revision Failed: ${err.message}`, 'error');
+        } finally {
+            setLoading(false, 'DAW Engine Idle');
+        }
+    });
+
+    // Regenerate whole song
+    regenerateBtn.addEventListener('click', () => {
+        generateBtn.click();
+    });
+
+    // Copy Code Utility
+    copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(codeText.value);
+        logTerminal('Sesi code copied to clipboard.', 'system');
+    });
+
+    // Audio Play / Pause Controls
+    playPauseBtn.addEventListener('click', () => {
+        if (!audioUrl) return;
+        if (isPlaying) {
+            audioPlayer.pause();
+        } else {
+            audioPlayer.play();
+        }
+    });
+
+    audioPlayer.addEventListener('play', () => {
+        isPlaying = true;
+        playPauseBtn.innerHTML = '<i class=\"fa-solid fa-pause\"></i>';
+        monitorStatus.textContent = 'Monitoring Track...';
+        animateWaveform();
+    });
+
+    audioPlayer.addEventListener('pause', () => {
+        isPlaying = false;
+        playPauseBtn.innerHTML = '<i class=\"fa-solid fa-play\"></i>';
+        monitorStatus.textContent = 'Track Paused';
+        cancelAnimationFrame(animationFrameId);
+        drawStaticWave();
+    });
+
+    audioPlayer.addEventListener('ended', () => {
+        isPlaying = false;
+        playPauseBtn.innerHTML = '<i class=\"fa-solid fa-play\"></i>';
+        monitorStatus.textContent = 'Track Finished';
+        cancelAnimationFrame(animationFrameId);
+        drawStaticWave();
+    });
+
+    // Draw waves in visualizer
+    function drawStaticWave() {
+        const w = visualizerCanvas.width;
+        const h = visualizerCanvas.height;
+        visualizerCtx.clearRect(0, 0, w, h);
+        
+        visualizerCtx.strokeStyle = 'rgba(100, 116, 139, 0.4)';
+        visualizerCtx.lineWidth = 2;
+        visualizerCtx.beginPath();
+        visualizerCtx.moveTo(0, h / 2);
+        
+        for (let i = 0; i < w; i += 6) {
+            const amp = Math.sin(i * 0.03) * Math.cos(i * 0.007) * (h * 0.25);
+            visualizerCtx.lineTo(i, h / 2 + amp);
+        }
+        visualizerCtx.stroke();
+    }
+
+    function animateWaveform() {
+        const w = visualizerCanvas.width;
+        const h = visualizerCanvas.height;
+        let offset = 0;
+
+        function draw() {
+            if (!isPlaying) return;
+            visualizerCtx.clearRect(0, 0, w, h);
+            
+            // Draw progress bar line
+            const duration = audioPlayer.duration || 1;
+            const progress = (audioPlayer.currentTime / duration) * w;
+            visualizerCtx.fillStyle = 'rgba(0, 242, 254, 0.1)';
+            visualizerCtx.fillRect(0, 0, progress, h);
+
+            // Draw glowing dynamic waves
+            visualizerCtx.shadowBlur = 8;
+            visualizerCtx.shadowColor = 'rgba(0, 242, 254, 0.5)';
+            visualizerCtx.strokeStyle = 'rgba(0, 242, 254, 0.85)';
+            visualizerCtx.lineWidth = 2;
+            
+            visualizerCtx.beginPath();
+            visualizerCtx.moveTo(0, h / 2);
+            
+            for (let i = 0; i < w; i += 4) {
+                // Wave distortion based on offset and progress
+                const frequency = 0.03 + (Math.sin(offset * 0.05) * 0.005);
+                const amp = Math.sin(i * frequency + offset) * Math.cos(i * 0.01 - offset * 0.5) * (h * 0.35);
+                visualizerCtx.lineTo(i, h / 2 + amp);
+            }
+            visualizerCtx.stroke();
+            
+            visualizerCtx.shadowBlur = 0; // reset
+            
+            // Draw playhead vertical line
+            visualizerCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            visualizerCtx.lineWidth = 1;
+            visualizerCtx.beginPath();
+            visualizerCtx.moveTo(progress, 0);
+            visualizerCtx.lineTo(progress, h);
+            visualizerCtx.stroke();
+
+            offset += 0.15;
+            animationFrameId = requestAnimationFrame(draw);
+        }
+        
+        draw();
+    }
+
+    // Persistence Layer Functions
+    function getDAWState() {
+        const state = {
+            tempo: configTempo.value,
+            swing: configSwing.value,
+            key: configKey.value,
+            structure: configStructure.value,
+            genre: configGenre ? configGenre.value : '',
+            mood: configMood ? configMood.value : '',
+            notes: configNotes.value.trim(),
+            mixer: {}
+        };
+
+        document.querySelectorAll('.mixer-channel').forEach(ch => {
+            const name = ch.getAttribute('data-channel');
+            const isMuted = ch.querySelector('.mute-btn').classList.contains('active');
+            const vol = ch.querySelector('.channel-vol').value;
+            const instSelect = ch.querySelector('.channel-inst');
+            const panSelect = ch.querySelector('.channel-pan');
+            
+            state.mixer[name] = {
+                muted: isMuted,
+                vol: vol,
+                pan: panSelect ? panSelect.value : '0.0',
+                instrument: instSelect ? instSelect.value : ''
+            };
+        });
+
+        return state;
+    }
+
+    async function saveDAWConfig() {
+        logTerminal('Saving DAW state to db...', 'system');
+        try {
+            const state = getDAWState();
+            const response = await fetch('/save-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(state)
+            });
+            if (response.ok) {
+                logTerminal('DAW configuration successfully saved.', 'success');
+            } else {
+                throw new Error('Save server error');
+            }
+        } catch (e) {
+            logTerminal(`Failed to save DAW state: ${e.message}`, 'error');
+        }
+    }
+
+    async function loadDAWConfig() {
+        logTerminal('Loading DAW state...', 'system');
+        try {
+            const res = await fetch('/load-config');
+            if (!res.ok) return;
+            const state = await res.json();
+
+            if (state.tempo) {
+                configTempo.value = state.tempo;
+                tempoVal.textContent = state.tempo;
+            }
+            if (state.swing) {
+                configSwing.value = state.swing;
+                swingVal.textContent = parseFloat(state.swing).toFixed(1);
+            }
+            if (state.key) {
+                configKey.value = state.key;
+            }
+            if (state.structure) {
+                configStructure.value = state.structure;
+            }
+            if (state.genre && configGenre) {
+                configGenre.value = state.genre;
+            }
+            if (state.mood && configMood) {
+                configMood.value = state.mood;
+            }
+            if (state.notes) {
+                configNotes.value = state.notes;
+            }
+            if (state.mixer) {
+                document.querySelectorAll('.mixer-channel').forEach(ch => {
+                    const name = ch.getAttribute('data-channel');
+                    const chData = state.mixer[name];
+                    if (chData) {
+                        const muteBtn = ch.querySelector('.mute-btn');
+                        if (chData.muted) {
+                            muteBtn.classList.add('active');
+                        } else {
+                            muteBtn.classList.remove('active');
+                        }
+                        
+                        ch.querySelector('.channel-vol').value = chData.vol;
+                        
+                        const instSelect = ch.querySelector('.channel-inst');
+                        if (instSelect && chData.instrument) {
+                            instSelect.value = chData.instrument;
+                        }
+                        
+                        const panSelect = ch.querySelector('.channel-pan');
+                        if (panSelect && chData.pan) {
+                            panSelect.value = chData.pan;
+                        }
+                    }
+                });
+            }
+            logTerminal('DAW configuration successfully loaded.', 'success');
+        } catch (e) {
+            logTerminal('Error loading DAW configuration from sesi-db.', 'error');
+        }
+    }
+
+    saveConfigBtn.addEventListener('click', saveDAWConfig);
+    loadDAWConfig();
+});"

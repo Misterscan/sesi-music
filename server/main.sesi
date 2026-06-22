@@ -1,0 +1,31 @@
+/*
+  Native Sesi Music Generation Web Server
+*/
+
+let Static = live("server/static_handler.sesi", "handle_static")
+let AudioService = live("server/audio_handler.sesi", "handle_audio")
+let ConfigService = live("server/config_handler.sesi", "handle_config")
+let AIService = live("server/ai_handler.sesi", "handle_ai")
+
+fn handleRequest(req) {
+  print "[" req.method "]" req.path
+  
+  let res = Static(req)
+  if res != null { return res }
+  
+  res = AudioService(req)
+  if res != null { return res }
+  
+  res = ConfigService(req)
+  if res != null { return res }
+  
+  res = AIService(req)
+  if res != null { return res }
+  
+  return {"status": 404, "body": "Not found"}
+}
+
+let server = listen(8080, handleRequest)
+print "🎵 Sesi Music Web Studio running on http://localhost:8080 🎵"
+exec("open http://localhost:8080")
+print "Press Ctrl+C to exit."

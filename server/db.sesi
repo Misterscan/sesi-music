@@ -1,0 +1,4 @@
+allow "std/db" in with {db_open}
+
+export let db = db_open("sesi_music.db")
+export let configs = db.collection("configs")

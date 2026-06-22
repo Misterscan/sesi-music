@@ -1,0 +1,99 @@
+fn custom_starts_with(str, prefix) {
+  if len(str) < len(prefix) { return false }
+  return slice(str, 0, len(prefix)) == prefix
+}
+
+fn custom_ends_with(str, suffix) {
+  if len(str) < len(suffix) { return false }
+  return slice(str, len(str) - len(suffix), len(str)) == suffix
+}
+
+let parsed_instruments = []
+try {
+  let doc = read_file("sf2/GeneralUser-GS.md")
+  let lines = split(doc, "\n")
+  let i = 0
+  while i < len(lines) {
+    let line = trim(lines[i])
+    if custom_starts_with(line, "|") {
+      let parts = split(line, "|")
+      let j = 0
+      while j < len(parts) {
+        let part = trim(parts[j])
+        if custom_starts_with(part, "**") && custom_ends_with(part, "**") {
+          let name = slice(part, 2, len(part) - 2)
+          if num(name) == null && name != "Preset:" && name != "Bank:" && name != "PC:" && name != "Bank 120 or Ch.10:" && name != "version 2.0.3" && name != "revision 6" && name != "by S. Christian Collins" {
+            let found = false
+            let k = 0
+            while k < len(parsed_instruments) {
+              if parsed_instruments[k] == name { found = true }
+              k = k + 1
+            }
+            if !found {
+              push(parsed_instruments, name)
+            }
+          }
+        }
+        j = j + 1
+      }
+    }
+    i = i + 1
+  }
+} catch (err) {
+  print "Warning: Failed to parse GeneralUser-GS.md: " err
+}
+
+if len(parsed_instruments) == 0 {
+  parsed_instruments = ["Grand Piano", "Tine Electric Piano", "FM Electric Piano", "Tonewheel Organ", "Nylon Guitar", "Steel Guitar", "Clean Guitar", "Distortion Guitar", "Finger Bass", "Synth Bass 1", "Violin", "Cello", "Timpani", "Trumpet", "French Horns", "Brass Section", "Alto Sax", "Tenor Sax", "Flute", "Clarinet", "Synth Pad", "Square Lead", "Saw Lead", "Warm Pad", "Steel Drums", "Standard 1 Kit"]
+}
+
+export fn handle_static(req) {
+  if req.method == "GET" && req.path == "/" {
+    try {
+      return {"status": 200, "headers": {"Content-Type": "text/html", "Cache-Control": "no-cache, no-store, must-revalidate"}, "body": read_file("static/index.html")}
+    } catch (e) {
+      return {"status": 404, "body": "Index file not found"}
+    }
+  }
+  if req.method == "GET" && req.path == "/style.css" {
+    try {
+      return {"status": 200, "headers": {"Content-Type": "text/css", "Cache-Control": "no-cache, no-store, must-revalidate"}, "body": read_file("static/style.css")}
+    } catch (e) {
+      return {"status": 404, "body": "CSS file not found"}
+    }
+  }
+  if req.method == "GET" && req.path == "/studio.js" {
+    try {
+      return {"status": 200, "headers": {"Content-Type": "application/javascript", "Cache-Control": "no-cache, no-store, must-revalidate"}, "body": read_file("static/studio.js")}
+    } catch (e) {
+      return {"status": 404, "body": "JS file not found"}
+    }
+  }
+  if req.method == "GET" && (req.path == "/favicon.svg" || req.path == "/favicon.ico") {
+    try {
+      return {"status": 200, "headers": {"Content-Type": "image/svg+xml"}, "body": read_file("static/favicon.svg")}
+    } catch (e) {
+      return {"status": 200, "body": ""}
+    }
+  }
+  if req.method == "GET" && req.path == "/logo.svg" {
+    try {
+      return {"status": 200, "headers": {"Content-Type": "image/svg+xml"}, "body": read_file("static/logo.svg")}
+    } catch (e) {
+      return {"status": 200, "body": ""}
+    }
+  }
+  
+  if req.method == "GET" && req.path == "/tags" {
+    let tags = {
+      "genre": ["Lo-Fi", "Synthwave", "Orchestral", "Punk", "Classical", "Dubstep", "Blues"],
+      "mood": ["Happy", "Sad", "Energetic", "Melancholic", "Epic"],
+      "structure": ["AABB", "ABAB", "Verse-Chorus"],
+      "key": ["C", "G", "D", "A", "E", "F", "Bb", "Eb"],
+      "instruments": parsed_instruments
+    }
+    return {"status": 200, "headers": {"Content-Type": "application/json"}, "body": to_json(tags)}
+  }
+  
+  return null
+}

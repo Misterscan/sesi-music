@@ -1,0 +1,29 @@
+{
+  "name": "sesi-music",
+  "version": "1.0.0",
+  "description": "A self-contained Sesi project",
+  "main": "dist/index.js",
+  "bin": {
+    "sesi": "bin/sesi.js"
+  },
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "sesi": "node bin/sesi.js -l",
+    "start": "node bin/sesi.js -l server/main.sesi",
+    "build": "node bin/sesi.js create/frontend.sesi",
+    "eval": "node bin/sesi.js -e",
+    "help": "node bin/sesi.js -h",
+    "lint": "node bin/sesi.js bin/lint.sesi",
+    "encrypt": "node bin/sesi.js -enc",
+    "decrypt": "node bin/sesi.js -dec"
+  },
+  "dependencies": {
+    "@misterscan/sesi": "1.5.7"
+  },
+  "allowScripts": {
+    "fsevents@2.3.2": true,
+    "protobufjs@7.6.4": true,
+    "@google/genai@2.9.0": true
+  }
+}

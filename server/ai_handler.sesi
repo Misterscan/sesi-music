@@ -1,0 +1,153 @@
+allow "prompts" in with Prompts
+
+export fn clean_code(raw) {
+  let cleaned = swap(raw, "```sesi", "")
+  cleaned = swap(cleaned, "```", "")
+  return trim(cleaned)
+}
+
+export fn handle_ai(req) {
+  if req.method == "POST" && req.path == "/generate" {
+    try {
+      let payload = from_json(req.body)
+      let prompt_text = trim(payload["prompt"])
+      let config_text = to_json(payload["config"])
+      
+      // Short-circuit check for pre-packaged verified scripts
+      if Prompts.PREPACKAGED_EXAMPLES[prompt_text] != null {
+        let example_data = Prompts.PREPACKAGED_EXAMPLES[prompt_text]
+        let brief = example_data["brief"]
+        let code = example_data["code"]
+        
+        try {
+          write_file("generated_song.sesi", code)
+          exec("node bin/sesi.js -l generated_song.sesi")
+          return {
+            "status": 200,
+            "headers": {"Content-Type": "application/json"},
+            "body": to_json({
+              "brief": brief,
+              "code": code
+            })
+          }
+        } catch (err) {
+          print "Error running prepackaged:" err
+          return {
+            "status": 500,
+            "headers": {"Content-Type": "application/json"},
+            "body": to_json({
+              "error": "Failed to compile prepackaged script: " + str(err)
+            })
+          }
+        }
+      }
+      
+      print "==========================================="
+      print "Stage 1: Generating Musical Brief..."
+      
+      let stage1_prompt = Prompts.get_stage1_prompt(prompt_text, config_text)
+      
+      let brief = ""
+      try {
+        brief = model("gemini-3.1-flash-lite") {thinkingLevel: "medium", temperature: 0.4} {stage1_prompt}
+        print "--> Brief Generated Successfully."
+        print brief
+        print ""
+      } catch (err) {
+        print "Stage 1 Error:" err
+        return {"status": 500, "headers": {"Content-Type": "application/json"}, "body": to_json({"error": "Failed to generate brief: " + str(err)})}
+      }
+      
+      print "Stage 2: Synthesizing Sesi Music Code..."
+      
+      let code = ""
+      let last_error = ""
+      let success = false
+      let attempt = 0
+      
+      while attempt < 3 && success == false {
+        let attempt_num = attempt + 1
+        let current_prompt = ""
+        if attempt == 0 {
+          current_prompt = Prompts.get_stage2_prompt(brief)
+        } else {
+          current_prompt = Prompts.get_repair_prompt(last_error, code)
+        }
+        
+        try {
+          if attempt == 0 {
+            code = model("gemini-3-flash-preview") {thinkingLevel: "medium", temperature: 0.3, max_tokens: 8192} {current_prompt}
+          } else {
+            print "--> Attempt" attempt_num "Repairing code..."
+            code = model("gemini-3.1-flash-lite") {thinkingLevel: "minimal", temperature: 0.1, max_tokens: 8192} {current_prompt}
+          }
+          
+          code = clean_code(code)
+          write_file("generated_song.sesi", code)
+          
+          print "--> Compiling Attempt" attempt_num "..."
+          exec("node bin/sesi.js -l generated_song.sesi")
+          
+          // Sesi's render_song generates output.wav. We assume success if exec finishes.
+          print "--> Compilation Success!"
+          success = true
+        } catch (err) {
+          last_error = str(err)
+          print "--> Attempt" attempt_num "Failed:" last_error
+          attempt = attempt + 1
+        }
+      }
+      
+      if success == false {
+        return {
+          "status": 500,
+          "headers": {"Content-Type": "application/json"},
+          "body": to_json({
+            "error": "Failed after 3 compilation attempts. Last error: " + last_error,
+            "brief": brief,
+            "code": code
+          })
+        }
+      }
+      
+      return {
+        "status": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": to_json({
+          "brief": brief,
+          "code": code
+        })
+      }
+    } catch (global_err) {
+      print "CRITICAL ERROR in /generate handler:" global_err
+      return {
+        "status": 500,
+        "headers": {"Content-Type": "application/json"},
+        "body": to_json({
+          "error": "Internal Server Error: " + str(global_err)
+        })
+      }
+    }
+  }
+
+  if req.method == "POST" && req.path == "/revise" {
+    let payload = from_json(req.body)
+    let original_code = payload["code"]
+    let brief = payload["brief"]
+    let req_text = payload["request"]
+    
+    let revise_prompt = Prompts.get_revision_prompt(brief, req_text, original_code)
+    
+    try {
+      let new_code = model("gemini-3.1-flash-lite") {thinkingLevel: "medium", temperature: 0.2} {revise_prompt}
+      new_code = clean_code(new_code)
+      write_file("generated_song.sesi", new_code)
+      exec("node bin/sesi.js -l generated_song.sesi")
+      return {"status": 200, "headers": {"Content-Type": "application/json"}, "body": to_json({"brief": brief, "code": new_code})}
+    } catch (err) {
+      return {"status": 500, "headers": {"Content-Type": "application/json"}, "body": to_json({"error": "Revision failed: " + str(err), "brief": brief, "code": original_code})}
+    }
+  }
+  
+  return null
+}

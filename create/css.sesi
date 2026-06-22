@@ -1,0 +1,670 @@
+export let css = ":root {
+    --bg-darkest: #070809;
+    --bg-darker: #0d0f11;
+    --bg-panel: rgba(22, 26, 30, 0.65);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-active: rgba(0, 242, 254, 0.35);
+    
+    --text-main: #e2e8f0;
+    --text-muted: #64748b;
+    --accent: #00f2fe;
+    --accent-purple: #8a2be2;
+    --accent-green: #10b981;
+    
+    --gradient-btn: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+    --gradient-btn-hover: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    
+    --font-family: 'Inter', sans-serif;
+    --font-heading: 'Outfit', sans-serif;
+    --font-mono: 'Fira Code', monospace;
+    
+    --shadow-main: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    --blur: blur(12px);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-darkest);
+    color: var(--text-main);
+    font-family: var(--font-family);
+    overflow: hidden;
+    height: 100vh;
+}
+
+.daw-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Header */
+.daw-header {
+    height: 55px;
+    background-color: var(--bg-darker);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 10;
+}
+
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+}
+
+.logo-icon {
+    font-size: 20px;
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+}
+
+.brand-title {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 0.5px;
+}
+
+.brand-sub {
+    font-weight: 300;
+    color: var(--text-muted);
+}
+
+.system-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.status-lamp {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--accent-green);
+    box-shadow: 0 0 8px var(--accent-green);
+    transition: all 0.3s ease;
+}
+
+.status-lamp.working {
+    background-color: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: blinker 1s infinite alternate;
+}
+
+.status-lamp.error {
+    background-color: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+}
+
+@keyframes blinker {
+    from { opacity: 1; }
+    to { opacity: 0.3; }
+}
+
+/* Workspace Grid */
+.daw-workspace {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 450px 1fr;
+    height: calc(100vh - 125px);
+    overflow: hidden;
+}
+
+.workspace-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+    overflow-y: auto;
+    height: 100%;
+}
+
+.controls-column {
+    border-right: 1px solid var(--border-color);
+    background-color: var(--bg-darkest);
+}
+
+.editor-column {
+    background-color: #0b0c0e;
+}
+
+/* DAW Panel */
+.daw-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: var(--shadow-main);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    transition: border-color 0.3s ease;
+}
+
+.daw-panel:focus-within {
+    border-color: var(--border-active);
+}
+
+.panel-title {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Composer Card */
+.prompt-box-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#prompt-input {
+    width: 100%;
+    height: 80px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-main);
+    padding: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+#prompt-input:focus {
+    border-color: var(--accent);
+}
+
+.ideas-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+.ideas-label {
+    color: var(--text-muted);
+}
+
+.ideas-tags {
+    display: flex;
+    gap: 6px;
+}
+
+.idea-btn {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.idea-btn:hover {
+    background-color: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+}
+
+/* DAW Settings */
+.settings-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.settings-item label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.range-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.range-control input[type=\"range\"] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 4px;
+    border-radius: 2px;
+}
+
+.range-val {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    width: 32px;
+    text-align: right;
+    color: var(--accent);
+}
+
+.settings-row {
+    display: flex;
+    gap: 12px;
+}
+
+.settings-item.half {
+    flex: 1;
+}
+
+select {
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+}
+
+select:focus {
+    border-color: var(--accent);
+}
+
+/* Mixer Rack */
+.mixer-rack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mixer-channel {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    align-items: center;
+    background-color: rgba(0,0,0,0.25);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 8px 10px;
+}
+
+.channel-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.channel-num {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-muted);
+}
+
+.channel-name {
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+.channel-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mute-btn {
+    width: 20px;
+    height: 20px;
+    background-color: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mute-btn.active {
+    background-color: #ef4444;
+    color: white;
+    border-color: #ef4444;
+}
+
+.fader-control {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.channel-vol {
+    width: 100%;
+    accent-color: var(--accent);
+}
+
+.channel-pan {
+    width: 40px;
+    accent-color: var(--accent-purple);
+}
+
+.channel-inst {
+    width: 110px;
+    font-size: 11px;
+    padding: 3px;
+}
+
+/* Directives */
+#config-notes {
+    width: 100%;
+    height: 60px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-main);
+    padding: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    resize: none;
+    outline: none;
+}
+
+/* Code Editor */
+.editor-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 350px;
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.editor-container {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 35px 1fr;
+    background-color: #030405;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.line-numbers {
+    padding: 10px 0;
+    text-align: right;
+    padding-right: 8px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-right: 1px solid var(--border-color);
+    color: #3b4252;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 19px;
+    user-select: none;
+}
+
+#code-text {
+    background-color: transparent;
+    border: none;
+    color: #88c0d0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 19px;
+    padding: 10px;
+    resize: none;
+    outline: none;
+    width: 100%;
+    height: 100%;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+/* Sesi Compiler Terminal */
+.terminal-card {
+    height: 140px;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.terminal-output {
+    flex: 1;
+    background-color: #030405;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.5;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+.terminal-output .system-msg {
+    color: #64748b;
+}
+
+.terminal-output .success-msg {
+    color: var(--accent-green);
+}
+
+.terminal-output .error-msg {
+    color: #ef4444;
+}
+
+/* Copilot Panel */
+.copilot-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#revision-request {
+    width: 100%;
+    height: 45px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-main);
+    padding: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    resize: none;
+    outline: none;
+}
+
+.copilot-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.copilot-actions button {
+    flex: 1;
+}
+
+/* Buttons */
+.btn {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    outline: none;
+}
+
+.btn:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--text-muted);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--gradient-btn);
+    color: #000;
+    border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--gradient-btn-hover);
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+}
+
+.btn-accent {
+    background-color: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+.btn-accent:hover:not(:disabled) {
+    background-color: rgba(0, 242, 254, 0.1);
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+}
+
+.btn-secondary {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.btn-icon {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 4px;
+}
+
+.full-width-btn {
+    width: 100%;
+}
+
+/* Footer / Playback Bar */
+.daw-footer {
+    height: 70px;
+    background-color: var(--bg-darker);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 10;
+}
+
+.footer-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 250px;
+}
+
+.btn-play {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gradient-btn);
+    color: #000;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.btn-play:hover:not(:disabled) {
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.5);
+    transform: scale(1.05);
+}
+
+.btn-play:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.monitor-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.monitor-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-muted);
+}
+
+.monitor-status {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.waveform-container {
+    flex: 1;
+    height: 50px;
+    max-width: 600px;
+    background-color: rgba(0,0,0,0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+#waveform-visualizer {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.footer-right {
+    width: 250px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.hidden {
+    display: none !important;
+}
+"

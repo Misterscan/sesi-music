@@ -1,0 +1,328 @@
+// presets.sesi
+// Preset instruments and DAW-style step sequencer for Sesi Audio projects.
+
+allow "std/audio" in with Audio
+allow "std/theory" in with Music
+allow "std/math" in with Math
+
+
+let SF2_PATH = "sf2/GeneralUser-GS.sf2"
+let loaded_instruments = {}
+
+// Set the SoundFont file path dynamically.
+export fn set_sf2_path(path: string) {
+  SF2_PATH = path
+  loaded_instruments = {}
+}
+
+// Retrieve or load a SoundFont instrument lazily.
+fn get_instrument(program: number, gain: number = 1.0) {
+  let key = str(program)
+  if loaded_instruments[key] == null {
+    loaded_instruments[key] = Audio.sf2(SF2_PATH, {"instrument": program, "gain": gain})
+  }
+  return loaded_instruments[key]
+}
+
+// Preset Instruments (SoundFont GS GM program maps)
+
+export fn piano(note: string, duration: number, options: object = null) {
+  let inst = get_instrument(0, 1.5)
+  let note_obj = inst(note, duration)
+  if options != null {
+    if options["vol"] != null { note_obj["vol"] = options["vol"] }
+    if options["pan"] != null { note_obj["pan"] = options["pan"] }
+    if options["cutoff"] != null { note_obj["cutoff"] = options["cutoff"] }
+  }
+  return note_obj
+}
+
+export fn organ(note: string, duration: number, options: object = null) {
+  let inst = get_instrument(16, 1.2)
+  let note_obj = inst(note, duration)
+  if options != null {
+    if options["vol"] != null { note_obj["vol"] = options["vol"] }
+    if options["pan"] != null { note_obj["pan"] = options["pan"] }
+    if options["cutoff"] != null { note_obj["cutoff"] = options["cutoff"] }
+  }
+  return note_obj
+}
+
+export fn guitar(note: string, duration: number, options: object = null) {
+  let inst = get_instrument(24, 1.2)
+  let note_obj = inst(note, duration)
+  if options != null {
+    if options["vol"] != null { note_obj["vol"] = options["vol"] }
+    if options["pan"] != null { note_obj["pan"] = options["pan"] }
+    if options["cutoff"] != null { note_obj["cutoff"] = options["cutoff"] }
+  }
+  return note_obj
+}
+
+export fn strings(note: string, duration: number, options: object = null) {
+  let inst = get_instrument(48, 1.0)
+  let note_obj = inst(note, duration)
+  if options != null {
+    if options["vol"] != null { note_obj["vol"] = options["vol"] }
+    if options["pan"] != null { note_obj["pan"] = options["pan"] }
+    if options["cutoff"] != null { note_obj["cutoff"] = options["cutoff"] }
+  }
+  return note_obj
+}
+
+export fn synth_lead(note: string, duration: number, options: object = null) {
+  let inst = get_instrument(80, 1.0)
+  let note_obj = inst(note, duration)
+  if options != null {
+    if options["vol"] != null { note_obj["vol"] = options["vol"] }
+    if options["pan"] != null { note_obj["pan"] = options["pan"] }
+    if options["cutoff"] != null { note_obj["cutoff"] = options["cutoff"] }
+  }
+  return note_obj
+}
+
+export fn synth_pad(note: string, duration: number, options: object = null) {
+  let inst = get_instrument(89, 1.0)
+  let note_obj = inst(note, duration)
+  if options != null {
+    if options["vol"] != null { note_obj["vol"] = options["vol"] }
+    if options["pan"] != null { note_obj["pan"] = options["pan"] }
+    if options["cutoff"] != null { note_obj["cutoff"] = options["cutoff"] }
+  }
+  return note_obj
+}
+
+// Preset Drum Sounds (Native Physical Modeling)
+// Redefined to match instrument signatures (note, duration, options)
+
+export fn kick(note: string, duration: number, options: object = null) {
+  let pitch = "C1"
+  if note != "x" && note != "hit" && note != "" && note != null {
+    pitch = note
+  }
+  let note_obj = {"note": pitch, "ms": duration, "type": "kick"}
+  if options != null {
+    if options["vol"] != null { note_obj["vol"] = options["vol"] }
+    if options["pan"] != null { note_obj["pan"] = options["pan"] }
+  }
+  return note_obj
+}
+
+export fn snare(note: string, duration: number, options: object = null) {
+  let pitch = "C4"
+  if note != "x" && note != "hit" && note != "" && note != null {
+    pitch = note
+  }
+  let note_obj = {"note": pitch, "ms": duration, "type": "snare"}
+  if options != null {
+    if options["vol"] != null { note_obj["vol"] = options["vol"] }
+    if options["pan"] != null { note_obj["pan"] = options["pan"] }
+  }
+  return note_obj
+}
+
+export fn hat(note: string, duration: number, options: object = null) {
+  let pitch = "G8"
+  if note != "x" && note != "hit" && note != "" && note != null {
+    pitch = note
+  }
+  let note_obj = {"note": pitch, "ms": duration, "type": "hat"}
+  if options != null {
+    if options["vol"] != null { note_obj["vol"] = options["vol"] }
+    if options["pan"] != null { note_obj["pan"] = options["pan"] }
+  }
+  return note_obj
+}
+
+export fn clap(note: string, duration: number, options: object = null) {
+  let pitch = "C4"
+  if note != "x" && note != "hit" && note != "" && note != null {
+    pitch = note
+  }
+  let note_obj = {"note": pitch, "ms": duration, "type": "clap"}
+  if options != null {
+    if options["vol"] != null { note_obj["vol"] = options["vol"] }
+    if options["pan"] != null { note_obj["pan"] = options["pan"] }
+  }
+  return note_obj
+}
+
+// =============================================================================
+// DAW-style Step Sequencer & Arranger Engine
+// =============================================================================
+
+export fn step_sequence(steps: array, instrument_fn, bpm: number, resolution: number = 0.0625, swing: number = 0.0) {
+  let raw_duration = Music.bar(resolution, bpm)
+  let K_step = Math.floor(raw_duration * 24.0 / 25.0 + 0.5)
+  let step_duration = K_step * 25.0 / 24.0
+  let notes = []
+  let active_note = null
+  
+  let i = 0
+  while i < len(steps) {
+    let step = steps[i]
+    
+    let dur = step_duration
+    if swing != 0.0 {
+      if i % 2 == 0 {
+        dur = step_duration * (1.0 + swing)
+      } else {
+        dur = step_duration * (1.0 - swing)
+      }
+    }
+    let dur_K = Math.floor(dur * 24.0 / 25.0 + 0.5)
+    dur = dur_K * 25.0 / 24.0
+    
+    if step == "_" || step == "rest" || step == null {
+      active_note = null
+      push(notes, {"note": "rest", "ms": dur})
+    } else if step == "-" || step == "tie" || step == "hold" {
+      if active_note != null {
+        active_note["ms"] = active_note["ms"] + dur
+      } else {
+        push(notes, {"note": "rest", "ms": dur})
+      }
+    } else {
+      // Hit step: trigger new note
+      let note_val = step
+      let options = null
+      if type(step) == "object" {
+        note_val = step["note"]
+        options = step
+      }
+      active_note = instrument_fn(note_val, dur, options)
+      push(notes, active_note)
+    }
+    i = i + 1
+  }
+  return notes
+}
+
+// Concatenates multiple note arrays together.
+export fn concat(tracks: array) {
+  let result = []
+  let i = 0
+  while i < len(tracks) {
+    let track = tracks[i]
+    let j = 0
+    while j < len(track) {
+      push(result, track[j])
+      j = j + 1
+    }
+    i = i + 1
+  }
+  return result
+}
+
+// Repeats a note pattern a specific number of times.
+export fn repeat(track: array, times: number) {
+  let result = []
+  let t = 0
+  while t < times {
+    let j = 0
+    while j < len(track) {
+      let original = track[j]
+      let copy = {}
+      if original["note"] != null { copy["note"] = original["note"] }
+      if original["ms"] != null { copy["ms"] = original["ms"] }
+      if original["vol"] != null { copy["vol"] = original["vol"] }
+      if original["type"] != null { copy["type"] = original["type"] }
+      if original["is_sf2"] != null { copy["is_sf2"] = original["is_sf2"] }
+      if original["sf2_path"] != null { copy["sf2_path"] = original["sf2_path"] }
+      if original["instrument"] != null { copy["instrument"] = original["instrument"] }
+      if original["channel"] != null { copy["channel"] = original["channel"] }
+      if original["gain"] != null { copy["gain"] = original["gain"] }
+      if original["cutoff"] != null { copy["cutoff"] = original["cutoff"] }
+      if original["pan"] != null { copy["pan"] = original["pan"] }
+      push(result, copy)
+      j = j + 1
+    }
+    t = t + 1
+  }
+  return result
+}
+
+// Generates a silent segment of note rests.
+export fn silence(steps_count: number, bpm: number, resolution: number = 0.0625) {
+  let raw_duration = Music.bar(resolution, bpm)
+  let K = Math.floor(raw_duration * 24.0 / 25.0 + 0.5)
+  let step_duration = K * 25.0 / 24.0
+  let notes = []
+  let k = 0
+  while k < steps_count {
+    push(notes, {"note": "rest", "ms": step_duration})
+    k = k + 1
+  }
+  return notes
+}
+
+// Automatically compiles SoundFont tracks, trims release tails, and mixes them.
+export fn render_song(filename: string, tracks: array) {
+  let mixed_tracks = []
+  let max_duration_ms = 0
+  
+  let i = 0
+  while i < len(tracks) {
+    let track = tracks[i]
+    
+    // Scan track to determine if it is a SoundFont track
+    let is_soundfont = false
+    let total_ms = 0
+    let j = 0
+    while j < len(track) {
+      let n = track[j]
+      total_ms = total_ms + n["ms"]
+      if n["is_sf2"] == true {
+        is_soundfont = true
+      }
+      j = j + 1
+    }
+    
+    if total_ms > max_duration_ms {
+      max_duration_ms = total_ms
+    }
+    
+    if is_soundfont {
+      let comp_track = []
+      let k = 0
+      while k < len(track) {
+        let original = track[k]
+        let copy = {}
+        if original["note"] != null { copy["note"] = original["note"] }
+        if original["ms"] != null { copy["ms"] = original["ms"] * 2.0 }
+        if original["vol"] != null { copy["vol"] = original["vol"] }
+        if original["type"] != null { copy["type"] = original["type"] }
+        if original["is_sf2"] != null { copy["is_sf2"] = original["is_sf2"] }
+        if original["sf2_path"] != null { copy["sf2_path"] = original["sf2_path"] }
+        if original["instrument"] != null { copy["instrument"] = original["instrument"] }
+        if original["channel"] != null { copy["channel"] = original["channel"] }
+        if original["gain"] != null { copy["gain"] = original["gain"] }
+        if original["cutoff"] != null { copy["cutoff"] = original["cutoff"] }
+        if original["pan"] != null { copy["pan"] = original["pan"] }
+        if original["attack"] != null { copy["attack"] = original["attack"] }
+        if original["release"] != null { copy["release"] = original["release"] }
+        push(comp_track, copy)
+        k = k + 1
+      }
+      let compiled = Audio.comp(SF2_PATH, comp_track)
+      compiled["musicalDurationSamples"] = Math.floor((total_ms / 1000.0) * 44100.0)
+      push(mixed_tracks, compiled)
+    } else {
+      push(mixed_tracks, track)
+    }
+    
+    i = i + 1
+  }
+  
+  Audio.mix(filename, mixed_tracks, "sine", {"saturate": 1.1})
+  
+  try {
+    let midi_filename = swap(filename, ".wav", ".mid")
+    Audio.midi(midi_filename, tracks)
+  } catch (e) {
+    print "MIDI Export failed:" e
+  }
+  
+  let seconds = max_duration_ms / 1000.0
+  print "Successfully rendered song to:" filename "(" seconds "seconds)"
+}

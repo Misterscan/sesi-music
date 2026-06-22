@@ -1,0 +1,289 @@
+export let html = "<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>Sesi Music Studio DAW</title>
+    <link rel=\"icon\" type=\"image/svg+xml\" href=\"favicon.svg\">
+    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
+    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
+    <link href=\"https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap\" rel=\"stylesheet\">
+    <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\">
+    <link rel=\"stylesheet\" href=\"style.css\">
+</head>
+<body>
+    <div class=\"daw-container\">
+        <!-- Top Titlebar / Navbar -->
+        <header class=\"daw-header\">
+            <div class=\"logo-area\">
+                <div class=\"logo-glow\"></div>
+                <i class=\"fa-solid fa-sliders logo-icon\"></i>
+                <span class=\"brand-title\">Sesi Music <span class=\"brand-sub\">Studio</span></span>
+            </div>
+            <div class=\"system-status\">
+                <span class=\"status-lamp\"></span>
+                <span id=\"status-text\">DAW Engine Idle</span>
+            </div>
+        </header>
+
+        <!-- Main DAW Grid Workspace -->
+        <main class=\"daw-workspace\">
+            <!-- Left Column: Controls & Channel Mixer -->
+            <section class=\"workspace-column controls-column\">
+                <!-- Composer Prompt Card -->
+                <div class=\"daw-panel composer-card\">
+                    <h3 class=\"panel-title\"><i class=\"fa-solid fa-wand-magic-sparkles\"></i> COMPOSER</h3>
+                    <div class=\"prompt-box-wrapper\">
+                        <textarea id=\"prompt-input\" placeholder=\"Describe a musical idea... (e.g. A melancholic piano ballad with warm ambient strings and a slow groove...)\"></textarea>
+                        <button id=\"generate-btn\" class=\"btn btn-primary\">
+                            <span class=\"btn-text\">Compose</span>
+                            <span class=\"btn-loader hidden\"><i class=\"fa-solid fa-circle-notch fa-spin\"></i></span>
+                        </button>
+                    </div>
+                    <!-- Quick Idea Tags -->
+                    <div class=\"ideas-selector\">
+                        <span class=\"ideas-label\">Presets:</span>
+                        <div class=\"ideas-tags\">
+                            <button class=\"idea-btn\" data-preset=\"second_love\">Second Love (Ballad)</button>
+                            <button class=\"idea-btn\" data-preset=\"stadium_anthem\">Stadium Anthem (Rock)</button>
+                            <button class=\"idea-btn\" data-preset=\"vaporwave\">Vaporwave (Chill)</button>
+                            <button class=\"idea-btn\" data-preset=\"ceremonious_march\">Ceremonial March</button>
+                            <button class=\"idea-btn\" data-preset=\"disco_song\">Disco Groove (Dance)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Global DAW Parameters -->
+                <div class=\"daw-panel settings-card\">
+                    <h3 class=\"panel-title\"><i class=\"fa-solid fa-gears\"></i> DAW SETTINGS</h3>
+                    <div class=\"settings-grid\">
+                        <div class=\"settings-item\">
+                            <label>Tempo (BPM)</label>
+                            <div class=\"range-control\">
+                                <input type=\"range\" id=\"config-tempo\" min=\"60\" max=\"200\" value=\"120\">
+                                <span class=\"range-val\" id=\"tempo-val\">120</span>
+                            </div>
+                        </div>
+                        <div class=\"settings-item\">
+                            <label>Swing</label>
+                            <div class=\"range-control\">
+                                <input type=\"range\" id=\"config-swing\" min=\"0\" max=\"1\" step=\"0.05\" value=\"0\">
+                                <span class=\"range-val\" id=\"swing-val\">0.0</span>
+                            </div>
+                        </div>
+                        <div class=\"settings-row\">
+                            <div class=\"settings-item half\">
+                                <label for=\"config-key\">Key</label>
+                                <select id=\"config-key\">
+                                    <option value=\"\">Auto-detect</option>
+                                </select>
+                            </div>
+                            <div class=\"settings-item half\">
+                                <label for=\"config-structure\">Structure</label>
+                                <select id=\"config-structure\">
+                                    <option value=\"\">Auto-detect</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class=\"settings-row\">
+                            <div class=\"settings-item half\">
+                                <label for=\"config-genre\">Genre</label>
+                                <select id=\"config-genre\">
+                                    <option value=\"\">Auto-detect</option>
+                                </select>
+                            </div>
+                            <div class=\"settings-item half\">
+                                <label for=\"config-mood\">Mood</label>
+                                <select id=\"config-mood\">
+                                    <option value=\"\">Auto-detect</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button id=\"save-config-btn\" class=\"btn btn-secondary full-width-btn\" style=\"margin-top: 15px;\">
+                        <i class=\"fa-solid fa-floppy-disk\"></i> Save DAW Configuration
+                    </button>
+                </div>
+
+                <!-- Channel Mixer Rack -->
+                <div class=\"daw-panel mixer-card\">
+                    <h3 class=\"panel-title\"><i class=\"fa-solid fa-server\"></i> INSTRUMENT MIXER</h3>
+                    <div class=\"mixer-rack\" id=\"mixer-rack\">
+                        <!-- Channel 1: Drums -->
+                        <div class=\"mixer-channel\" data-channel=\"drums\">
+                            <div class=\"channel-info\">
+                                <span class=\"channel-num\">CH 1</span>
+                                <span class=\"channel-name\">DRUMS</span>
+                            </div>
+                            <div class=\"channel-controls\">
+                                <button class=\"mute-btn\" title=\"Mute\">M</button>
+                                <div class=\"fader-control\">
+                                    <input type=\"range\" class=\"channel-vol\" min=\"0\" max=\"1.5\" step=\"0.05\" value=\"1.0\">
+                                </div>
+                                <div class=\"pan-control\">
+                                    <input type=\"range\" class=\"channel-pan\" min=\"-1\" max=\"1\" step=\"0.1\" value=\"0.0\" title=\"Pan\">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Channel 2: Bass -->
+                        <div class=\"mixer-channel\" data-channel=\"bass\">
+                            <div class=\"channel-info\">
+                                <span class=\"channel-num\">CH 2</span>
+                                <span class=\"channel-name\">BASS</span>
+                            </div>
+                            <div class=\"channel-controls\">
+                                <button class=\"mute-btn\" title=\"Mute\">M</button>
+                                <div class=\"fader-control\">
+                                    <input type=\"range\" class=\"channel-vol\" min=\"0\" max=\"1.5\" step=\"0.05\" value=\"1.0\">
+                                </div>
+                                <select class=\"channel-inst\" title=\"Instrument\">
+                                    <option value=\"Synth Lead\">Synth Bass</option>
+                                    <option value=\"Piano\">Acoustic Bass</option>
+                                    <option value=\"Guitar\">Electric Bass</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Channel 3: Chords -->
+                        <div class=\"mixer-channel\" data-channel=\"chords\">
+                            <div class=\"channel-info\">
+                                <span class=\"channel-num\">CH 3</span>
+                                <span class=\"channel-name\">CHORDS</span>
+                            </div>
+                            <div class=\"channel-controls\">
+                                <button class=\"mute-btn\" title=\"Mute\">M</button>
+                                <div class=\"fader-control\">
+                                    <input type=\"range\" class=\"channel-vol\" min=\"0\" max=\"1.5\" step=\"0.05\" value=\"1.0\">
+                                </div>
+                                <select class=\"channel-inst\" title=\"Instrument\">
+                                    <option value=\"Synth Pad\">Synth Pad</option>
+                                    <option value=\"Piano\">Grand Piano</option>
+                                    <option value=\"Organ\">Jazz Organ</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Channel 4: Lead -->
+                        <div class=\"mixer-channel\" data-channel=\"lead\">
+                            <div class=\"channel-info\">
+                                <span class=\"channel-num\">CH 4</span>
+                                <span class=\"channel-name\">LEAD</span>
+                            </div>
+                            <div class=\"channel-controls\">
+                                <button class=\"mute-btn\" title=\"Mute\">M</button>
+                                <div class=\"fader-control\">
+                                    <input type=\"range\" class=\"channel-vol\" min=\"0\" max=\"1.5\" step=\"0.05\" value=\"1.0\">
+                                </div>
+                                <select class=\"channel-inst\" title=\"Instrument\">
+                                    <option value=\"Synth Lead\">Synth Lead</option>
+                                    <option value=\"Guitar\">Electric Guitar</option>
+                                    <option value=\"Piano\">Grand Piano</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Channel 5: Melody -->
+                        <div class=\"mixer-channel\" data-channel=\"melody\">
+                            <div class=\"channel-info\">
+                                <span class=\"channel-num\">CH 5</span>
+                                <span class=\"channel-name\">MELODY</span>
+                            </div>
+                            <div class=\"channel-controls\">
+                                <button class=\"mute-btn\" title=\"Mute\">M</button>
+                                <div class=\"fader-control\">
+                                    <input type=\"range\" class=\"channel-vol\" min=\"0\" max=\"1.5\" step=\"0.05\" value=\"1.0\">
+                                </div>
+                                <select class=\"channel-inst\" title=\"Instrument\">
+                                    <option value=\"Strings\">Orchestral Strings</option>
+                                    <option value=\"Piano\">Piano</option>
+                                    <option value=\"Organ\">Jazz Organ</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Directives -->
+                <div class=\"daw-panel directives-card\">
+                    <h3 class=\"panel-title\"><i class=\"fa-solid fa-pen-fancy\"></i> DIRECTIVES</h3>
+                    <textarea id=\"config-notes\" placeholder=\"e.g. Keep kick drums punching hard, high strings swelling in chorus, slow fadeout...\"></textarea>
+                </div>
+            </section>
+
+            <!-- Right Column: Sesi IDE Editor & Terminal -->
+            <section class=\"workspace-column editor-column\">
+                <!-- Code Editor -->
+                <div class=\"daw-panel editor-card\">
+                    <div class=\"editor-header\">
+                        <h3 class=\"panel-title\"><i class=\"fa-solid fa-code\"></i> SESI CODE EDITOR</h3>
+                        <button id=\"copy-btn\" class=\"btn btn-icon\" title=\"Copy Code\"><i class=\"fa-solid fa-copy\"></i></button>
+                    </div>
+                    <div class=\"editor-container\">
+                        <div class=\"line-numbers\" id=\"line-numbers\">
+                            <span>1</span>
+                        </div>
+                        <textarea id=\"code-text\" spellcheck=\"false\" placeholder=\"# Write or generate Sesi music orchestration code...\"></textarea>
+                    </div>
+                    <button id=\"render-code-btn\" class=\"btn btn-accent full-width-btn\">
+                        <i class=\"fa-solid fa-play\"></i> Compile & Render Track
+                    </button>
+                </div>
+
+                <!-- Sesi Compiler Terminal -->
+                <div class=\"daw-panel terminal-card\">
+                    <div class=\"terminal-header\">
+                        <h3 class=\"panel-title\"><i class=\"fa-solid fa-terminal\"></i> COMPILER TERMINAL</h3>
+                        <button id=\"clear-terminal\" class=\"btn btn-icon\" title=\"Clear Output\"><i class=\"fa-solid fa-trash\"></i></button>
+                    </div>
+                    <div class=\"terminal-output\" id=\"terminal-output\">
+                        <span class=\"system-msg\">[System] Sesi compiler ready. Waiting for render event...</span>
+                    </div>
+                </div>
+
+                <!-- Copilot Panel -->
+                <div class=\"daw-panel copilot-card\">
+                    <h3 class=\"panel-title\"><i class=\"fa-solid fa-robot\"></i> MUSIC STUDIO ASSISTANT</h3>
+                    <div class=\"copilot-input-wrapper\">
+                        <textarea id=\"revision-request\" placeholder=\"Ask Sesi Music to change the song (e.g. 'Make the tempo faster', 'Add a guitar solo', 'Change lead to strings')...\"></textarea>
+                        <div class=\"copilot-actions\">
+                            <button id=\"revise-btn\" class=\"btn btn-secondary\">
+                                <i class=\"fa-solid fa-pen-nib\"></i> Apply Revisions
+                            </button>
+                            <button id=\"regenerate-btn\" class=\"btn btn-secondary\">
+                                <i class=\"fa-solid fa-rotate-left\"></i> Regenerate Song
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Controller Bar (Studio Monitor) -->
+        <footer class=\"daw-footer\">
+            <div class=\"footer-left\">
+                <button id=\"play-pause-btn\" class=\"btn-play\" disabled><i class=\"fa-solid fa-play\"></i></button>
+                <div class=\"monitor-info\">
+                    <span class=\"monitor-label\">STUDIO MONITOR</span>
+                    <span class=\"monitor-status\" id=\"monitor-status\">No Audio Rendered</span>
+                </div>
+            </div>
+            
+            <!-- Real-time Waveform Canvas Visualizer -->
+            <div class=\"waveform-container\">
+                <canvas id=\"waveform-visualizer\"></canvas>
+                <audio id=\"audio-player\" style=\"display:none;\"></audio>
+            </div>
+
+            <div class=\"footer-right\" style=\"display: flex; gap: 8px; align-items: center;\">
+                <select id=\"download-format\" class=\"btn btn-secondary\" style=\"background: var(--bg-darker); border: 1px solid var(--border-color); padding: 0 12px; height: 38px; color: var(--text-main); font-family: inherit; font-size: 0.85rem; border-radius: 6px; cursor: pointer;\">
+                    <option value=\"wav\">WAV Format</option>
+                    <option value=\"mp3\">MP3 Format</option>
+                    <option value=\"midi\">MIDI Format</option>
+                </select>
+                <a id=\"download-audio-btn\" class=\"btn btn-secondary\" disabled>
+                    <i class=\"fa-solid fa-download\"></i> Download
+                </a>
+            </div>
+        </footer>
+    </div>
+    
+    <script src=\"studio.js\"></script>
+</body>
+</html>"
