@@ -126,7 +126,7 @@ export let js = "document.addEventListener('DOMContentLoaded', () => {
 
     // Editor Synchronized Line Numbers
     function updateLineNumbers() {
-        const lines = codeText.value.split('\n');
+        const lines = codeText.value.split('\\n');
         lineNumbers.innerHTML = '';
         for (let i = 1; i <= lines.length; i++) {
             const span = document.createElement('span');
@@ -209,6 +209,11 @@ export let js = "document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.mute-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             btn.classList.toggle('active');
+            // If playing, update VU meters immediately
+            if (!isPlaying) {
+                const fill = btn.closest('.mixer-channel').querySelector('.vu-bar-fill');
+                if (fill) fill.style.height = '0%';
+            }
         });
     });
 
@@ -432,27 +437,56 @@ export let js = "document.addEventListener('DOMContentLoaded', () => {
             visualizerCtx.lineTo(i, h / 2 + amp);
         }
         visualizerCtx.stroke();
+        
+        // Reset VU bars to 0%
+        document.querySelectorAll('.vu-bar-fill').forEach(bar => {
+            bar.style.height = '0%';
+        });
     }
 
     function animateWaveform() {
         const w = visualizerCanvas.width;
         const h = visualizerCanvas.height;
         let offset = 0;
+        const vuBars = document.querySelectorAll('.vu-bar-fill');
 
         function draw() {
-            if (!isPlaying) return;
+            if (!isPlaying) {
+                vuBars.forEach(bar => bar.style.height = '0%');
+                return;
+            }
             visualizerCtx.clearRect(0, 0, w, h);
             
             // Draw progress bar line
             const duration = audioPlayer.duration || 1;
             const progress = (audioPlayer.currentTime / duration) * w;
-            visualizerCtx.fillStyle = 'rgba(0, 242, 254, 0.1)';
+            
+            // Background glowing gradient
+            const bgGrad = visualizerCtx.createLinearGradient(0, 0, 0, h);
+            bgGrad.addColorStop(0, 'rgba(168, 85, 247, 0.04)');
+            bgGrad.addColorStop(1, 'rgba(0, 242, 254, 0.04)');
+            visualizerCtx.fillStyle = bgGrad;
+            visualizerCtx.fillRect(0, 0, w, h);
+            
+            visualizerCtx.fillStyle = 'rgba(0, 242, 254, 0.08)';
             visualizerCtx.fillRect(0, 0, progress, h);
 
+            // Draw second layer wave (purple/pink)
+            visualizerCtx.strokeStyle = 'rgba(168, 85, 247, 0.35)';
+            visualizerCtx.lineWidth = 1.5;
+            visualizerCtx.beginPath();
+            visualizerCtx.moveTo(0, h / 2);
+            for (let i = 0; i < w; i += 6) {
+                const frequency = 0.02 + (Math.sin(offset * 0.03) * 0.003);
+                const amp = Math.sin(i * frequency - offset * 0.7) * Math.cos(i * 0.008 + offset * 0.3) * (h * 0.3);
+                visualizerCtx.lineTo(i, h / 2 + amp);
+            }
+            visualizerCtx.stroke();
+
             // Draw glowing dynamic waves
-            visualizerCtx.shadowBlur = 8;
-            visualizerCtx.shadowColor = 'rgba(0, 242, 254, 0.5)';
-            visualizerCtx.strokeStyle = 'rgba(0, 242, 254, 0.85)';
+            visualizerCtx.shadowBlur = 6;
+            visualizerCtx.shadowColor = 'rgba(0, 242, 254, 0.4)';
+            visualizerCtx.strokeStyle = 'rgba(0, 242, 254, 0.8)';
             visualizerCtx.lineWidth = 2;
             
             visualizerCtx.beginPath();
@@ -460,8 +494,8 @@ export let js = "document.addEventListener('DOMContentLoaded', () => {
             
             for (let i = 0; i < w; i += 4) {
                 // Wave distortion based on offset and progress
-                const frequency = 0.03 + (Math.sin(offset * 0.05) * 0.005);
-                const amp = Math.sin(i * frequency + offset) * Math.cos(i * 0.01 - offset * 0.5) * (h * 0.35);
+                const frequency = 0.035 + (Math.sin(offset * 0.05) * 0.005);
+                const amp = Math.sin(i * frequency + offset) * Math.cos(i * 0.012 - offset * 0.4) * (h * 0.35);
                 visualizerCtx.lineTo(i, h / 2 + amp);
             }
             visualizerCtx.stroke();
@@ -469,14 +503,31 @@ export let js = "document.addEventListener('DOMContentLoaded', () => {
             visualizerCtx.shadowBlur = 0; // reset
             
             // Draw playhead vertical line
-            visualizerCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            visualizerCtx.lineWidth = 1;
+            visualizerCtx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+            visualizerCtx.lineWidth = 1.5;
             visualizerCtx.beginPath();
             visualizerCtx.moveTo(progress, 0);
             visualizerCtx.lineTo(progress, h);
             visualizerCtx.stroke();
 
-            offset += 0.15;
+            // Simulate VU meters bouncing
+            vuBars.forEach((bar, index) => {
+                const ch = bar.closest('.mixer-channel');
+                const isMuted = ch.querySelector('.mute-btn').classList.contains('active');
+                if (isMuted) {
+                    bar.style.height = '0%';
+                    return;
+                }
+                const vol = parseFloat(ch.querySelector('.channel-vol').value);
+                const base = Math.sin(offset * 1.8 + index * 1.5) * 20 + 55;
+                const noise = Math.random() * 25;
+                let level = (base + noise) * vol;
+                if (level < 0) level = 0;
+                if (level > 100) level = 100;
+                bar.style.height = level + '%';
+            });
+
+            offset += 0.12;
             animationFrameId = requestAnimationFrame(draw);
         }
         
