@@ -27,5 +27,17 @@ fn handleRequest(req) {
 
 let server = listen(8080, handleRequest)
 print "🎵 Sesi Music Web Studio running on http://localhost:8080 🎵"
-exec("open http://localhost:8080")
+try {
+  if contains(exec("uname"), "Darwin") {
+    exec("open http://localhost:8080")
+  }
+  if contains(exec("uname"), "Windows") {
+    exec("start http://localhost:8080")
+  }
+  if contains(exec("uname"), "Linux") {
+    exec("xdg-open http://localhost:8080")
+  }
+} catch (e) {
+  print "Failed to open browser: " e
+}
 print "Press Ctrl+C to exit."

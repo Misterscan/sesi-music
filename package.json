@@ -1,8 +1,8 @@
 {
   "name": "sesi-music",
   "version": "1.0.0",
-  "description": "A self-contained Sesi project",
-  "main": "dist/index.js",
+  "description": "A music generation studio powered by Sesi",
+  "main": "node_modules/@misterscan/sesi/dist/index.js",
   "bin": {
     "sesi": "bin/sesi.js"
   },

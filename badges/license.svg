@@ -1,0 +1,10 @@
+<svg width="128" height="32" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="128" height="32" fill="#111827" rx="8" ry="8" />
+  <rect x="0" y="0" width="80" height="32" fill="#374151" rx="8" ry="8" />
+  <rect x="72" y="0" width="8" height="32" fill="#374151" />
+  <rect x="80" y="0" width="48" height="32" fill="#16a34a" rx="8" ry="8" />
+  <rect x="80" y="0" width="8" height="32" fill="#16a34a" />
+  <rect x="0" y="0" width="128" height="15" fill="#ffffff" opacity="0.08" rx="8" ry="8" />
+  <text x="12" y="21" font-size="14" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="600">license</text>
+  <text x="92" y="21" font-size="14" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="700">MIT</text>
+</svg>

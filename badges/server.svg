@@ -1,0 +1,10 @@
+<svg width="136" height="32" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="136" height="32" fill="#111827" rx="8" ry="8" />
+  <rect x="0" y="0" width="72" height="32" fill="#374151" rx="8" ry="8" />
+  <rect x="64" y="0" width="8" height="32" fill="#374151" />
+  <rect x="72" y="0" width="64" height="32" fill="#3730a3" rx="8" ry="8" />
+  <rect x="72" y="0" width="8" height="32" fill="#3730a3" />
+  <rect x="0" y="0" width="136" height="15" fill="#ffffff" opacity="0.08" rx="8" ry="8" />
+  <text x="12" y="21" font-size="14" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="600">server</text>
+  <text x="84" y="21" font-size="14" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="700">:8080</text>
+</svg>

@@ -1,9 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <path d="M32 64C32 64 48 40 64 40C80 40 96 64 96 64C96 64 80 88 64 88C48 88 32 64 32 64Z" fill="none" stroke="black" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="64" cy="64" r="18" fill="none" stroke="black" stroke-width="2"/>
-  <circle cx="64" cy="64" r="10" fill="black"/>
-  <path d="M24 48Q16 64 24 80" fill="none" stroke="black" stroke-width="4" stroke-linecap="round"/>
-  <path d="M14 40Q2 64 14 88" fill="none" stroke="black" stroke-width="4" stroke-linecap="round"/>
-  <path d="M104 48Q112 64 104 80" fill="none" stroke="black" stroke-width="4" stroke-linecap="round"/>
-  <path d="M114 40Q126 64 114 88" fill="none" stroke="black" stroke-width="4" stroke-linecap="round"/>
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sesiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#00f2fe" />
+    <stop offset="60%" stop-color="#a855f7" />
+    <stop offset="100%" stop-color="#ec4899" />
+  </linearGradient>
+    <style>
+    .neon-glow { filter: drop-shadow(0 0 3px rgba(168, 85, 247, 0.4)) drop-shadow(0 0 8px rgba(0, 242, 254, 0.25)); }
+  </style>
+  </defs>
+  <rect x="16" y="32" width="96" height="64" fill="none" stroke="url(#sesiGrad)" stroke-width="5" rx="6" class="neon-glow" />
+  <polygon points="36,84 92,84 84,96 44,96" fill="none" stroke="url(#sesiGrad)" stroke-width="3" class="neon-glow" />
+  <rect x="28" y="42" width="72" height="34" fill="none" stroke="url(#sesiGrad)" stroke-width="3" rx="4" class="neon-glow" />
+  <circle cx="48" cy="59" r="10" fill="none" stroke="url(#sesiGrad)" stroke-width="2" class="neon-glow" />
+  <circle cx="48" cy="59" r="5" fill="none" stroke="url(#sesiGrad)" stroke-width="1.5" stroke-dasharray="2, 1" class="neon-glow" />
+  <circle cx="80" cy="59" r="10" fill="none" stroke="url(#sesiGrad)" stroke-width="2" class="neon-glow" />
+  <circle cx="80" cy="59" r="5" fill="none" stroke="url(#sesiGrad)" stroke-width="1.5" stroke-dasharray="2, 1" class="neon-glow" />
+  <line x1="40" y1="59" x2="44" y2="84" stroke="url(#sesiGrad)" stroke-width="2" opacity="0.6" class="neon-glow" />
+  <line x1="88" y1="59" x2="84" y2="84" stroke="url(#sesiGrad)" stroke-width="2" opacity="0.6" class="neon-glow" />
+  <line x1="44" y1="84" x2="84" y2="84" stroke="url(#sesiGrad)" stroke-width="2" opacity="0.6" class="neon-glow" />
 </svg>

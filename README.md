@@ -1,8 +1,17 @@
 # 🎵 Sesi Music
 
-**A self-contained AI music generation studio powered by [Sesi](https://www.npmjs.com/package/@misterscan/sesi) — compose, synthesize, and serve audio from a single project.**
+<p align="center">
+  <img src="static/favicon.svg" alt="Sesi Music">
+  <br><br>
+  <img src="badges/version.svg" alt="sesi v1.5.7" height="25">
+  <img src="badges/server.svg" alt="server :8080" height="25">
+  <img src="badges/license.svg" alt="license MIT" height="25">
+  <img src="badges/soundfont.svg" alt="soundfont GeneralUser GS" height="25">
+</p>
 
-Sesi Music is a scaffold for building music with Sesi's native audio engine. It ships with an HTTP web studio, the GeneralUser GS SoundFont, a Sesi runtime, and a clean project layout to start writing songs immediately — no DAW, no external runtime.
+**A music generation studio powered by [Sesi](https://www.npmjs.com/package/@misterscan/sesi). Compose, synthesize, and serve audio from a single project.**
+
+Sesi Music is a scaffold for building music with Sesi's native audio engine. It ships with an HTTP web studio, the GeneralUser GS SoundFont, a Sesi runtime, and a clean project layout to start writing songs immediately. No DAW required.
 
 ---
 
@@ -37,6 +46,13 @@ Copy `env.example` to `.env` and add your API key:
 
 ```bash
 cp env.example .env
+npm install
+
+# To use the sesi command, run:
+npm install -g
+
+# Then use it like a regular command:
+# sesi my-file.sesi
 ```
 
 ```env
@@ -50,7 +66,13 @@ SESI_PASSWORD=your-password-here
 npm start
 ```
 
-Opens the Sesi Music Web Studio at **http://localhost:8080** — a browser-based UI for generating and playing back AI-composed songs.
+**or**
+
+```bash
+sesi -l server/main.sesi
+```
+
+Opens the Sesi Music Web Studio at **http://localhost:8080** — a browser-based UI for generating and playing back songs.
 
 ### 3. Write and run a song script
 
@@ -58,6 +80,12 @@ Create a `.sesi` file in `make/` and run it:
 
 ```bash
 npm run sesi make/my_song.sesi
+```
+
+**or**
+
+```bash
+sesi make/my_song.sesi
 ```
 
 Output `.wav` and `.mid` files are written wherever your script saves them (conventionally `songs/`).
@@ -121,42 +149,40 @@ Audio.mix("songs/out.wav", [notes], "sine")
 `lib/presets.sesi` ships with the project and provides ready-to-use instrument functions, drum sounds, and a full DAW-style composition engine — all backed by the included GeneralUser GS SoundFont.
 
 ```sesi
-allow "lib/presets" in with { piano, guitar, strings, synth_lead, synth_pad,
-                               organ, kick, snare, hat, clap,
-                               step_sequence, repeat, concat, silence, render_song }
+allow "lib/presets" in with Presets
 ```
 
 ### Instrument Presets
 
-| Function | GM Program | Description |
-| -------- | ---------- | ----------- |
-| `piano(note, ms, opts?)` | 0 | Acoustic grand piano |
-| `organ(note, ms, opts?)` | 16 | Hammond-style organ |
-| `guitar(note, ms, opts?)` | 24 | Nylon-string guitar |
-| `strings(note, ms, opts?)` | 48 | String ensemble |
-| `synth_lead(note, ms, opts?)` | 80 | Synth lead |
-| `synth_pad(note, ms, opts?)` | 89 | Synth pad |
+| Function                      | GM Program | Description          |
+| ----------------------------- | ---------- | -------------------- |
+| `piano(note, ms, opts?)`      | 0          | Acoustic grand piano |
+| `organ(note, ms, opts?)`      | 16         | Hammond-style organ  |
+| `guitar(note, ms, opts?)`     | 24         | Nylon-string guitar  |
+| `strings(note, ms, opts?)`    | 48         | String ensemble      |
+| `synth_lead(note, ms, opts?)` | 80         | Synth lead           |
+| `synth_pad(note, ms, opts?)`  | 89         | Synth pad            |
 
 ### Drum Presets (Native Physical Modeling)
 
-| Function | Description |
-| -------- | ----------- |
-| `kick(note, ms, opts?)` | Kick drum |
-| `snare(note, ms, opts?)` | Snare drum |
-| `hat(note, ms, opts?)` | Hi-hat |
-| `clap(note, ms, opts?)` | Clap |
+| Function                 | Description |
+| ------------------------ | ----------- |
+| `kick(note, ms, opts?)`  | Kick drum   |
+| `snare(note, ms, opts?)` | Snare drum  |
+| `hat(note, ms, opts?)`   | Hi-hat      |
+| `clap(note, ms, opts?)`  | Clap        |
 
 All `opts` objects accept `vol`, `pan`, and `cutoff` keys.
 
 ### Composition Utilities
 
-| Function | Description |
-| -------- | ----------- |
+| Function                                                  | Description                                     |
+| --------------------------------------------------------- | ----------------------------------------------- |
 | `step_sequence(steps, inst_fn, bpm, resolution?, swing?)` | DAW-style step sequencer — returns a note array |
-| `repeat(track, times)` | Repeats a note pattern N times |
-| `concat(tracks)` | Concatenates multiple note arrays |
-| `silence(steps, bpm, resolution?)` | Generates a silent rest segment |
-| `render_song(filename, tracks)` | Mixes all tracks, exports `.wav` + `.mid` |
+| `repeat(track, times)`                                    | Repeats a note pattern N times                  |
+| `concat(tracks)`                                          | Concatenates multiple note arrays               |
+| `silence(steps, bpm, resolution?)`                        | Generates a silent rest segment                 |
+| `render_song(filename, tracks)`                           | Mixes all tracks, exports `.wav` + `.mid`       |
 
 ```sesi
 allow "lib/presets" in with { piano, kick, snare, hat, step_sequence, repeat, concat, render_song }
@@ -193,17 +219,17 @@ npm run build   # Rebuild frontend (create/frontend.sesi)
 
 ## CLI Reference
 
-| Command                         | Description                               |
-| ------------------------------- | ----------------------------------------- |
-| `npm run sesi <file>.sesi`      | Run a Sesi script                         |
-| `npm run sesi <file>.sesi arg1` | Run with CLI args (available as `args[]`) |
-| `npm run eval "sesi code"`      | Inline eval — fast syntax testing         |
-| `npm run help`                  | Show CLI help                             |
-| `npm run lint`                  | Run linter on specific file               |
-| `npm run encrypt <file>`        | Encrypt a `.sesi` file                    |
-| `npm run decrypt <file>`        | Decrypt a `.sesi` file                    |
-| `npm start`                     | Start the web server on port 8080         |
-| `npm run build`                 | Build the frontend                        |
+| Command                                                    | Description                               |
+| ---------------------------------------------------------- | ----------------------------------------- |
+| `npm run sesi <file>.sesi` or `sesi <file>.sesi`           | Run a Sesi script                         |
+| `npm run sesi <file>.sesi arg1` or `sesi <file>.sesi arg1` | Run with CLI args (available as `args[]`) |
+| `npm run eval "sesi code"` or `sesi -e "sesi code"`        | Inline eval — fast syntax testing         |
+| `npm run help` or `sesi -h`                                | Show CLI help                             |
+| `npm run lint` or `sesi -l`                                | Run linter on specific file               |
+| `npm run encrypt <file>` or `sesi -enc <file>`             | Encrypt a `.sesi` file                    |
+| `npm run decrypt <file>` or `sesi -dec <file>`             | Decrypt a `.sesi` file                    |
+| `npm start` or `sesi -l server/main.sesi`                  | Start the web server on port 8080         |
+| `npm run build` or `sesi create/frontend.sesi`             | Build the frontend                        |
 
 ---
 
