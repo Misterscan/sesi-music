@@ -225,7 +225,7 @@ npm run build   # Rebuild frontend (create/frontend.sesi)
 | `npm run sesi <file>.sesi arg1` or `sesi <file>.sesi arg1` | Run with CLI args (available as `args[]`) |
 | `npm run eval "sesi code"` or `sesi -e "sesi code"`        | Inline eval — fast syntax testing         |
 | `npm run help` or `sesi -h`                                | Show CLI help                             |
-| `npm run lint` or `sesi -l`                                | Run linter on specific file               |
+| `npm run lint <file>` or `sesi bin/lint.sesi <file>`       | Run linter on specific file               |
 | `npm run encrypt <file>` or `sesi -enc <file>`             | Encrypt a `.sesi` file                    |
 | `npm run decrypt <file>` or `sesi -dec <file>`             | Decrypt a `.sesi` file                    |
 | `npm start` or `sesi -l server/main.sesi`                  | Start the web server on port 8080         |
