@@ -1,4 +1,4 @@
-export let js = "document.addEventListener('DOMContentLoaded', () => {
+export let script = "document.addEventListener('DOMContentLoaded', () => {
     // Elements
     const generateBtn = document.getElementById('generate-btn');
     const promptInput = document.getElementById('prompt-input');
@@ -156,6 +156,7 @@ export let js = "document.addEventListener('DOMContentLoaded', () => {
 
     // Preset tag buttons
     const presets = {
+        mpc: 'A swung MPC track with minor synth bass and a changing arrangement.',
         second_love: 'A beautiful song that captures the feeling of falling in love for the second time.',
         stadium_anthem: 'An epic, high-energy entrance theme for a championship football game.',
         vaporwave: 'A dreamy vaporwave track with a cassette vibe, dynamic neon cover art, and a saxophone lead.',

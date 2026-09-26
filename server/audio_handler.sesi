@@ -1,15 +1,19 @@
+allow "helpers/safe" in as Safe
+
+let generated_song_path = ".generated_song.sesi"
+
 export fn handle_audio(req) {
   if req.method == "POST" && req.path == "/render-code" {
     let payload = from_json(req.body)
-    let edited_code = payload["code"]
+    let edited_code = payload.code
     let brief = payload["brief"]
     
     try {
-        write_file("generated_song.sesi", edited_code)
-        exec("node bin/sesi.js -l generated_song.sesi")
-        return {"status": 200, "headers": {"Content-Type": "application/json"}, "body": to_json({"brief": brief, "code": edited_code})}
+        Safe.writeFile(generated_song_path, edited_code)
+        sesi(generated_song_path, true)
+        return {status: 200, headers: {"Content-Type": "application/json"}, body: to_json({brief: brief, code: edited_code})}
     } catch (err) {
-        return {"status": 500, "headers": {"Content-Type": "application/json"}, "body": to_json({"error": str(err), "brief": brief, "code": edited_code})}
+        return {status: 500, headers: {"Content-Type": "application/json"}, body: to_json({error: str(err), brief: brief, code: edited_code})}
     }
   }
 
@@ -33,10 +37,10 @@ export fn handle_audio(req) {
           content_type = "audio/midi"
         }
         
-        let total_bytes = num(trim(exec("node -e \"process.stdout.write(require('fs').statSync('" + target_file + "').size.toString())\"")))
-        let rangeHeader = req.headers["range"]
+        let total_bytes = num(trim(js("process.stdout.write(require('fs').statSync('" + target_file + "').size.toString())")))
+        let rangeHeader = req.headers.range
         if rangeHeader == null {
-          rangeHeader = req.headers["Range"]
+          rangeHeader = req.headers.Range
         }
         
         if rangeHeader != null {
@@ -52,44 +56,40 @@ export fn handle_audio(req) {
             if end == null || end >= total_bytes { end = total_bytes - 1 }
             
             let contentLength = end - start + 1
-            exec("node -e \"require('fs').writeFileSync('temp_chunk.txt', require('fs').readFileSync('" + target_file + "').slice(" + str(start) + ", " + str(end + 1) + ").toString('base64'))\"")
-            let chunk_base64 = read_file("temp_chunk.txt")
-            exec("node -e \"try { require('fs').unlinkSync('temp_chunk.txt') } catch(e) {}\"")
+            let chunk_base64 = Safe.readFile(target_file, "base64")
             let contentRange = "bytes " + str(start) + "-" + str(end) + "/" + str(total_bytes)
             
             return {
-              "status": 206,
-              "headers": {
+              status: 206,
+              headers: {
                 "Content-Type": content_type,
                 "Accept-Ranges": "bytes",
                 "Content-Range": contentRange,
                 "Content-Length": str(contentLength)
               },
-              "body": chunk_base64
+              body: chunk_base64
             }
           }
         }
         
-        exec("node -e \"require('fs').writeFileSync('temp_audio.txt', require('fs').readFileSync('" + target_file + "').toString('base64'))\"")
         let file_base64 = ""
         try {
-          file_base64 = read_file("temp_audio.txt")
+          file_base64 = Safe.readFile(target_file, "base64")
         } catch (e) {
-          print "Error reading temp audio:" e
+          show "Error reading audio:" e
         }
-        exec("node -e \"try { require('fs').unlinkSync('temp_audio.txt') } catch(e) {}\"")
         return {
-          "status": 200, 
-          "headers": {
+          status: 200, 
+          headers: {
             "Content-Type": content_type,
             "Accept-Ranges": "bytes",
             "Content-Length": str(total_bytes)
           }, 
-          "body": file_base64
+          body: file_base64
         }
     } catch (err) {
-        print "Error serving audio:" err
-        return {"status": 404, "body": "Audio not found"}
+        show "Error serving audio:" err
+        return {status: 404, body: "Audio not found"}
     }
   }
 

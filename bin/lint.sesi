@@ -1,34 +1,50 @@
-/* 
+/*
     lint.sesi
     A high-fidelity, native Sesi static syntax auditor and workspace quality gates tool.
     Tokenizes and audits Sesi code completely natively in pure Sesi.
-  
+
   Usage:
     npm run lint <filename>
 */
 
+allow "helpers/safe" in as Safe
+allow "ansi" in as TERM
+allow "std/terminal" in with {color}
+allow "std/time" in with {now, format}
+
+/**
+  Lexical analyzer for Sesi code.
+
+  Parameters:
+  - content: The source code content as a string.
+
+  Returns:
+  An array of token objects, each containing type, lexeme, and line number.
+*/
 fn lex(content) {
   let tokens = []
   let chars = split(content, "")
   let n = len(chars)
   let i = 0
   let line = 1
-  
+  let alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+  let digits = "0123456789"
+
   while i < n {
     let c = chars[i]
-    
+
     if c == "\n" {
       push(tokens, {"type": "NEWLINE", "lexeme": "\n", "line": line})
       line = line + 1
       i = i + 1
       continue
     }
-    
+
     // Skip whitespace
     if c == " " { i = i + 1; continue }
     if c == "\t" { i = i + 1; continue }
     if c == "\r" { i = i + 1; continue }
-    
+
     // Comments
     if c == "/" {
       if i + 1 < n {
@@ -57,7 +73,7 @@ fn lex(content) {
         }
       }
     }
-    
+
     // String literals
     if c == "\"" {
       let val = ""
@@ -99,7 +115,7 @@ fn lex(content) {
       push(tokens, {"type": "STRING", "lexeme": val, "line": line})
       continue
     }
-    
+
     // Brackets & Punctuation
     if c == "(" { push(tokens, {"type": "LEFT_PAREN", "lexeme": "(", "line": line}); i = i + 1; continue }
     if c == ")" { push(tokens, {"type": "RIGHT_PAREN", "lexeme": ")", "line": line}); i = i + 1; continue }
@@ -111,7 +127,38 @@ fn lex(content) {
     if c == ";" { push(tokens, {"type": "SEMICOLON", "lexeme": ";", "line": line}); i = i + 1; continue }
     if c == ":" { push(tokens, {"type": "COLON", "lexeme": ":", "line": line}); i = i + 1; continue }
     if c == "." { push(tokens, {"type": "DOT", "lexeme": ".", "line": line}); i = i + 1; continue }
-    
+    if c == "?" {
+      if i + 1 < n {
+        if chars[i+1] == "." { push(tokens, {"type": "QUESTION_DOT", "lexeme": "?.", "line": line}); i = i + 2; continue }
+      } push(tokens, {"type": "QUESTION", "lexeme": "?", "line": line}); i = i + 1; continue }
+    if c == "$" {
+      if i + 1 < n {
+        let nextChar = chars[i+1]
+        let isAlphaNext = len(split(alpha, nextChar)) > 1
+        if isAlphaNext {
+          let lexeme = "$"
+          i = i + 1
+          while i < n {
+            let char = chars[i]
+            let inAlpha = len(split(alpha, char)) > 1
+            let inDigit = len(split(digits, char)) > 1
+            if inAlpha == false {
+              if inDigit == false {
+                break
+              }
+            }
+            lexeme = lexeme + char
+            i = i + 1
+          }
+          push(tokens, {"type": "DOLLAR_IDENTIFIER", "lexeme": lexeme, "line": line})
+          continue
+        }
+      }
+      push(tokens, {"type": "DOLLAR", "lexeme": "$", "line": line})
+      i = i + 1
+      continue
+    }
+
     // Multi/Single char operators
     if c == "=" {
       if i + 1 < n {
@@ -144,6 +191,11 @@ fn lex(content) {
           i = i + 2
           continue
         }
+        if chars[i+1] == ">" {
+          push(tokens, {"type": "LESS_GREATER", "lexeme": "<>", "line": line})
+          i = i + 2
+          continue
+        }
       }
       push(tokens, {"type": "LESS", "lexeme": "<", "line": line})
       i = i + 1
@@ -162,7 +214,18 @@ fn lex(content) {
       continue
     }
     if c == "+" { push(tokens, {"type": "PLUS", "lexeme": "+", "line": line}); i = i + 1; continue }
-    if c == "-" { push(tokens, {"type": "MINUS", "lexeme": "-", "line": line}); i = i + 1; continue }
+    if c == "-" {
+      if i + 1 < n {
+        if chars[i+1] == ">" {
+          push(tokens, {"type": "ARROW", "lexeme": "->", "line": line})
+          i = i + 2
+          continue
+        }
+      }
+      push(tokens, {"type": "MINUS", "lexeme": "-", "line": line})
+      i = i + 1
+      continue
+    }
     if c == "*" { push(tokens, {"type": "STAR", "lexeme": "*", "line": line}); i = i + 1; continue }
     if c == "/" { push(tokens, {"type": "SLASH", "lexeme": "/", "line": line}); i = i + 1; continue }
     if c == "%" { push(tokens, {"type": "PERCENT", "lexeme": "%", "line": line}); i = i + 1; continue }
@@ -191,16 +254,14 @@ fn lex(content) {
       continue
     }
 
-    
+
     // Identifiers & Keywords
-    let alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-    let digits = "0123456789"
     let isAlpha = false
     let isDigit = false
-    
+
     if len(split(alpha, c)) > 1 { isAlpha = true }
     if len(split(digits, c)) > 1 { isDigit = true }
-    
+
     if isAlpha {
       let lexeme = ""
       while i < n {
@@ -215,20 +276,20 @@ fn lex(content) {
         lexeme = lexeme + char
         i = i + 1
       }
-      
+
       let type = "IDENTIFIER"
-      let keywords = ["let", "const", "fn", "if", "else", "while", "for", "in", "return", "break", "continue", "try", "catch", "finally", "import", "export", "memory", "true", "false", "null", "print", "prompt", "model", "image", "structured_output", "tool_call", "async", "await", "convert", "from", "to", "allow", "with"]
-      
+      let keywords = ["let", "fn", "make", "if", "else", "while", "for", "in", "return", "break", "continue", "try", "catch", "finally", "import", "export", "memory", "true", "false", "null", "show", "prompt", "model", "image", "structured_output", "tool_call", "async", "await", "convert", "from", "to", "allow", "with", "workflow", "as"]
+
       for kw in keywords {
         if lexeme == kw {
           type = kw
         }
       }
-      
+
       let upperType = type
       if type == "let" { upperType = "LET" }
-      if type == "const" { upperType = "CONST" }
       if type == "fn" { upperType = "FN" }
+      if type == "make" { upperType = "MAKE" }
       if type == "if" { upperType = "IF" }
       if type == "else" { upperType = "ELSE" }
       if type == "while" { upperType = "WHILE" }
@@ -246,7 +307,7 @@ fn lex(content) {
       if type == "true" { upperType = "TRUE" }
       if type == "false" { upperType = "FALSE" }
       if type == "null" { upperType = "NULL" }
-      if type == "print" { upperType = "PRINT" }
+      if type == "show" { upperType = "PRINT" }
       if type == "prompt" { upperType = "PROMPT" }
       if type == "model" { upperType = "MODEL" }
       if type == "image" { upperType = "IMAGE" }
@@ -259,11 +320,13 @@ fn lex(content) {
       if type == "to" { upperType = "TO" }
       if type == "allow" { upperType = "ALLOW" }
       if type == "with" { upperType = "WITH" }
-      
+      if type == "workflow" { upperType = "WORKFLOW" }
+      if type == "as" { upperType = "AS" }
+
       push(tokens, {"type": upperType, "lexeme": lexeme, "line": line})
       continue
     }
-    
+
     if isDigit {
       let lexeme = ""
       while i < n {
@@ -280,47 +343,376 @@ fn lex(content) {
       push(tokens, {"type": "NUMBER", "lexeme": lexeme, "line": line})
       continue
     }
-    
+
     i = i + 1
   }
-  
+
   push(tokens, {"type": "EOF", "lexeme": "", "line": line})
   return tokens
 }
 
+/**
+  Performs an independent scope audit for the native linter.
+  This intentionally does not call the IDE analyzer or the CLI dry-run checker.
+
+  Parameters:
+  - tokens: An array of token objects generated by the lexer.
+
+  Returns:
+  An array of issues found during the scope audit.
+*/
+fn audit_scope(tokens) {
+  let issues = []
+  let scopes = [{"parent": -1, "isRoot": true, "isMakeScope": false}]
+  let scopeStack = [0]
+  let tokenScopes = []
+  let declarations = []
+  let declarationTokens = []
+  let currentScope = 0
+  let pendingScope = -1
+  let n = len(tokens)
+  let i = 0
+
+  // Creates a new scope and adds it to the scopes list.
+  //
+  // Parameters:
+  // - parent: The ID of the parent scope.
+  // - isMakeScope: A boolean indicating if this is a make scope.
+  //
+  // Returns:
+  // The ID of the newly created scope.
+  fn new_scope(parent, isMakeScope) {
+    push(scopes, {"parent": parent, "isRoot": false, "isMakeScope": isMakeScope})
+    return len(scopes) - 1
+  }
+
+  //
+  // Declares a new symbol in the current scope.
+  //
+  // Parameters:
+  // - name: The name of the symbol.
+  // - tokenIndex: The index of the token representing the symbol.
+  // - scopeId: The ID of the scope where the symbol is declared.
+  // - suppressUnused: A boolean indicating if unused warnings should be suppressed.
+  //
+  // Returns:
+  // None. The symbol is added to the declarations list.
+  fn declare_symbol(name, tokenIndex, scopeId, suppressUnused) {
+    push(declarationTokens, tokenIndex)
+    let existing = -1
+    let d = 0
+    while d < len(declarations) {
+      if declarations[d].scope == scopeId {
+        if declarations[d].name == name { existing = d }
+      }
+      d = d + 1
+    }
+    let binding = {
+        "name": name,
+        "tokenIndex": tokenIndex,
+        "scope": scopeId,
+        "reads": 0,
+        "suppressUnused": suppressUnused
+      }
+    if existing == -1 {
+      push(declarations, binding)
+    } else {
+      declarations[existing] = binding
+    }
+  }
+
+  while i < n {
+    let tok = tokens[i]
+
+    if tok.type == "RIGHT_BRACE" {
+      if len(scopeStack) > 1 {
+        pop(scopeStack)
+        currentScope = scopeStack[len(scopeStack) - 1]
+      }
+    }
+    push(tokenScopes, currentScope)
+
+    if tok.type == "FN" || tok.type == "MAKE" {
+      if i + 1 < n {
+        let nameTok = tokens[i + 1]
+        if nameTok.type == "IDENTIFIER" {
+          declare_symbol(nameTok.lexeme, i + 1, currentScope, false)
+        }
+      }
+      let isMakeScope = false
+      if tok.type == "MAKE" { isMakeScope = true }
+      let isMakeMethod = false
+      if tok.type == "FN" {
+        if scopes[currentScope].isMakeScope { isMakeMethod = true }
+      }
+      pendingScope = new_scope(currentScope, isMakeScope)
+      let cursor = i + 2
+      while cursor < n {
+        if tokens[cursor].type == "LEFT_PAREN" { break }
+        if tokens[cursor].type == "LEFT_BRACE" { break }
+        cursor = cursor + 1
+      }
+      if cursor < n {
+        if tokens[cursor].type == "LEFT_PAREN" {
+          cursor = cursor + 1
+          while cursor < n {
+            if tokens[cursor].type == "RIGHT_PAREN" { break }
+            if tokens[cursor].type == "IDENTIFIER" {
+              let previous = tokens[cursor - 1]
+              if previous.type == "LEFT_PAREN" || previous.type == "COMMA" {
+                let suppress = false
+                let prefix = slice(tokens[cursor].lexeme, 0, 1)
+                if prefix == "_" { suppress = true }
+                if isMakeMethod {
+                  if tokens[cursor].lexeme == "self" { suppress = true }
+                }
+                declare_symbol(tokens[cursor].lexeme, cursor, pendingScope, suppress)
+              }
+            }
+            cursor = cursor + 1
+          }
+        }
+      }
+    } else if tok.type == "FOR" {
+      pendingScope = new_scope(currentScope, false)
+      if i + 1 < n {
+        if tokens[i + 1].type == "IDENTIFIER" {
+          declare_symbol(tokens[i + 1].lexeme, i + 1, pendingScope, true)
+        }
+      }
+    } else if tok.type == "CATCH" {
+      pendingScope = new_scope(currentScope, false)
+      if i + 2 < n {
+        if tokens[i + 1].type == "LEFT_PAREN" {
+          if tokens[i + 2].type == "IDENTIFIER" {
+            declare_symbol(tokens[i + 2].lexeme, i + 2, pendingScope, true)
+          }
+        }
+      }
+    } else if tok.type == "LEFT_BRACE" {
+      if pendingScope != -1 {
+        currentScope = pendingScope
+        pendingScope = -1
+      } else {
+        currentScope = new_scope(currentScope, false)
+      }
+      push(scopeStack, currentScope)
+    } else if tok.type == "LET" || tok.type == "MEMORY" || tok.type == "PROMPT" || tok.type == "STRUCTURED_OUTPUT" {
+      if i + 1 < n {
+        if tokens[i + 1].type == "IDENTIFIER" {
+          declare_symbol(tokens[i + 1].lexeme, i + 1, currentScope, false)
+        }
+      }
+    } else if tok.type == "IMPORT" {
+      let cursor = i + 1
+      while cursor < n {
+        if tokens[cursor].type == "FROM" { break }
+        if tokens[cursor].type == "EOF" { break }
+        if tokens[cursor].type == "IDENTIFIER" {
+          declare_symbol(tokens[cursor].lexeme, cursor, currentScope, false)
+        }
+        cursor = cursor + 1
+      }
+    } else if tok.type == "ALLOW" {
+      let cursor = i + 1
+      while cursor < n {
+        if tokens[cursor].type == "WITH" || tokens[cursor].type == "AS" { break }
+        if tokens[cursor].type == "EOF" { break }
+        cursor = cursor + 1
+      }
+      if cursor < n {
+        cursor = cursor + 1
+        while cursor < n {
+          if tokens[cursor].type != "NEWLINE" { break }
+          cursor = cursor + 1
+        }
+        if cursor < n {
+          if tokens[cursor].type == "IDENTIFIER" {
+            declare_symbol(tokens[cursor].lexeme, cursor, currentScope, false)
+          } else if tokens[cursor].type == "LEFT_BRACE" {
+            cursor = cursor + 1
+            while cursor < n {
+              if tokens[cursor].type == "RIGHT_BRACE" { break }
+              if tokens[cursor].type == "EOF" { break }
+              if tokens[cursor].type == "IDENTIFIER" {
+                declare_symbol(tokens[cursor].lexeme, cursor, currentScope, false)
+              }
+              cursor = cursor + 1
+            }
+          }
+        }
+      }
+    } else if tok.type == "IDENTIFIER" {
+      if tok.lexeme == "define_tool" {
+        if i + 2 < n {
+          if tokens[i + 1].type == "LEFT_PAREN" {
+            if tokens[i + 2].type == "STRING" || tokens[i + 2].type == "IDENTIFIER" {
+              declare_symbol(tokens[i + 2].lexeme, i + 2, currentScope, false)
+            }
+          }
+        }
+      }
+    }
+    i = i + 1
+  }
+
+  let builtins = [
+    "show", "str", "type", "num", "float", "bool", "from_json", "to_json", "encrypt", "decrypt", "speech", "from_speech", "translate", "len",
+    "read_file", "write_file", "append_file", "write_image", "open", "open_file", "list_dir", "make_dir", "rename", "archive", "zip", "exists", "get_ext", "trash",
+    "exp", "trunc", "random", "sleep", "now", "model", "image", "js", "html", "structured_output", "tool_call", "spawn", "exec", "run", "sesi",
+    "python", "time", "env", "range", "push", "append", "pop", "join", "split", "keys", "values", "array", "PI", "E", "sin", "cos",
+    "tan", "sqrt", "floor", "ceil", "abs", "pow", "log", "workflow", "set_alias", "define_tool", "list_tools", "memory_config",
+    "error_type", "raise_error", "multi_req", "web_get", "web_send", "listen", "live", "convert", "api", "prompt", "debug", "to_upper",
+    "to_lower", "trim", "slice", "swap", "retry", "map", "filter", "reduce", "find", "format", "db_open", "args", "input", "contains",
+    "locate", "doc", "media", "audio", "launch", "memory_search", "memory_trim", "lazy", "force", "timeout", "profile", "profile_start",
+    "profile_end", "profile_report", "string", "number", "object", "null", "any", "name",
+    "arity", "is_function", "is_array", "is_object", "is_string", "is_number", "is_bool", "is_null", "length", "starts_with", "ends_with",
+    "index_of", "repeat", "includes", "reverse", "sort", "unique", "flatten", "play", "beep", "synth", "save", "sequence", "mix", "comp",
+    "render", "sf2", "chord", "scale", "transpose", "duration", "bar", "midi", "clear", "circle", "rect", "line", "text", "save_svg",
+    "ellipse", "polygon", "path", "gradient", "style", "raw", "regex", "tokenize", "count_tokens", "estimate_tokens", "estimate_cost",
+    "model_usage", "gif", "video", "ffmpeg", "matrix_dot", "matrix_transpose", "matrix_add", "matrix_sub", "matrix_mul_elements", "matrix_scale",
+    "matrix_sigmoid", "matrix_dsigmoid", "matrix_sum_rows", "matrix_mse", "Game", "VERSION", "vec2", "vec3", "quat", "color",
+    "create_scene", "activate_scene", "enable_physics", "add_body", "raycast"
+  ]
+
+  i = 0
+  while i < n {
+    let tok = tokens[i]
+    if tok.type == "IDENTIFIER" {
+      let isDeclaration = false
+      for declarationToken in declarationTokens {
+        if declarationToken == i { isDeclaration = true }
+      }
+
+      let skipReference = isDeclaration
+      if skipReference == false {
+        if i > 0 {
+          if tokens[i - 1].type == "DOT" { skipReference = true }
+          if tokens[i - 1].type == "QUESTION_DOT" { skipReference = true }
+        }
+      }
+      if skipReference == false {
+        if i + 1 < n {
+          if tokens[i + 1].type == "COLON" { skipReference = true }
+        }
+      }
+
+      if skipReference == false {
+        let resolvedIndex = -1
+        let searchScope = tokenScopes[i]
+        while searchScope != -1 {
+          let d = len(declarations) - 1
+          while d >= 0 {
+            let decl = declarations[d]
+            if decl.scope == searchScope {
+              if decl.name == tok.lexeme {
+                resolvedIndex = d
+                break
+              }
+            }
+            d = d - 1
+          }
+          if resolvedIndex != -1 { break }
+          searchScope = scopes[searchScope].parent
+        }
+
+        if resolvedIndex != -1 {
+          declarations[resolvedIndex]["reads"] = declarations[resolvedIndex].reads + 1
+        } else {
+          let isBuiltin = false
+          for builtinName in builtins {
+            if builtinName == tok.lexeme { isBuiltin = true }
+          }
+          if isBuiltin == false {
+            push(issues, {
+              "line": tok.line,
+              "message": "Undefined symbol: \"" + tok.lexeme + "\". Referenced but not declared in this scope."
+            })
+          }
+        }
+      }
+    }
+    i = i + 1
+  }
+
+  for decl in declarations {
+    if scopes[decl.scope].isRoot == false {
+      if scopes[decl.scope].isMakeScope == false {
+        if decl.reads == 0 {
+          if decl.suppressUnused == false {
+            if decl.name != "req" {
+              let prefix = slice(decl.name, 0, 1)
+              if prefix != "_" {
+                push(issues, {
+                  "line": tokens[decl.tokenIndex].line,
+                  "message": "Unused symbol: \"" + decl.name + "\". Declared but never read.",
+                  "isWarning": true
+                })
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return issues
+}
+
+/**
+  Performs a syntax audit on the given tokens.
+
+  Parameters:
+  - tokens: An array of token objects generated by the lexer.
+
+  Returns:
+  An array of syntax errors and warnings found during the audit.
+*/
 fn audit_syntax(tokens) {
   let errors = []
   let n = len(tokens)
   let i = 0
-  
+
   let parenDepth = 0
   let bracketDepth = 0
   let braceDepth = 0
-  
+
   let lastOpenParen = 0
   let lastOpenBracket = 0
   let lastOpenBrace = 0
-  
+
   let expectingPromptBrace = false
   let inPromptBraceDepth = -1
   let expectingModelOrImageBrace = false
   let inPrint = false
-  let printParenDepth = 0
-  
+  let showParenDepth = 0
+
   while i < n {
     let tok = tokens[i]
     let type = tok.type
     let line = tok.line
-    
-    if type == "PRINT" { inPrint = true; printParenDepth = parenDepth }
-    if type == "NEWLINE" { inPrint = false }
+
+    if type == "PRINT" { inPrint = true; showParenDepth = parenDepth }
+    if type == "NEWLINE" {
+      inPrint = false
+      if inPromptBraceDepth != -1 {
+        let msg = "Syntax Error: Raw newlines are strictly forbidden outside of string literals inside prompt blocks."
+        let found = false
+        for e in errors {
+          if e.line == line { if e.message == msg { found = true } }
+        }
+        if found == false {
+          push(errors, {"line": line, "message": msg})
+        }
+      }
+    }
     if type == "SEMICOLON" { inPrint = false }
     if type == "EOF" { inPrint = false }
-    
+
     if type == "PLUS" {
       if inPrint {
-        if parenDepth == printParenDepth {
-          let msg = "Avoid `+` in `print`. Place values sequentially."
+        if parenDepth == showParenDepth {
+          let msg = "Avoid `+` in `show`. Place values sequentially."
           let found = false
           for e in errors {
             if e.line == line { if e.message == msg { found = true } }
@@ -342,7 +734,7 @@ fn audit_syntax(tokens) {
         }
       }
     }
-    
+
     if type == "PROMPT" {
       expectingPromptBrace = true
     }
@@ -352,7 +744,7 @@ fn audit_syntax(tokens) {
     if type == "IMAGE" {
       expectingModelOrImageBrace = true
     }
-    
+
     if type == "LEFT_PAREN" { if parenDepth == 0 { lastOpenParen = line } parenDepth = parenDepth + 1 }
     if type == "RIGHT_PAREN" { parenDepth = parenDepth - 1; if parenDepth < 0 { push(errors, {"line": line, "message": "Syntax Error: Unmatched close parenthesis ')'"}); parenDepth = 0 } }
     if type == "LEFT_BRACKET" { if bracketDepth == 0 { lastOpenBracket = line } bracketDepth = bracketDepth + 1 }
@@ -384,7 +776,7 @@ fn audit_syntax(tokens) {
       braceDepth = braceDepth - 1
       if braceDepth < 0 { push(errors, {"line": line, "message": "Syntax Error: Unmatched close brace '}'"}); braceDepth = 0 }
     }
-    
+
     if type == "LET" {
       if i + 1 < n {
         let next = tokens[i+1]
@@ -405,23 +797,38 @@ fn audit_syntax(tokens) {
         }
       }
     }
-    
+
     if type == "FOR" {
-      let hasIn = false
-      let temp = i + 1
-      while temp < n {
-        let t = tokens[temp]
-        if t.type == "IN" { hasIn = true; break }
-        if t.type == "NEWLINE" { break }
-        if t.type == "LEFT_BRACE" { break }
-        temp = temp + 1
+      // Detect numeric range: `for i = 0 to N` (no `in` keyword expected)
+      let isNumericRange = false
+      let temp2 = i + 1
+      // skip identifier then check for EQUAL
+      if temp2 < n {
+        if tokens[temp2].type == "IDENTIFIER" {
+          temp2 = temp2 + 1
+          if temp2 < n {
+            if tokens[temp2].type == "EQUAL" { isNumericRange = true }
+          }
+        }
       }
-      if hasIn == false {
-        push(errors, {"line": line, "message": "Syntax Error: `for` loop missing native `in` keyword"})
+
+      if isNumericRange == false {
+        let hasIn = false
+        let temp = i + 1
+        while temp < n {
+          let t = tokens[temp]
+          if t.type == "IN" { hasIn = true; break }
+          if t.type == "NEWLINE" { break }
+          if t.type == "LEFT_BRACE" { break }
+          temp = temp + 1
+        }
+        if hasIn == false {
+          push(errors, {"line": line, "message": "Syntax Error: `for` loop missing native `in` keyword"})
+        }
       }
-      
+
       let hasBlock = false
-      temp = i + 1
+      let temp = i + 1
       while temp < n {
         let t = tokens[temp]
         if t.type == "LEFT_BRACE" { hasBlock = true; break }
@@ -442,7 +849,7 @@ fn audit_syntax(tokens) {
         push(errors, {"line": line, "message": "Syntax Error: Expected `{` to open `for` loop block"})
       }
     }
-    
+
     if type == "IF" {
       let hasBlock = false
       let temp = i + 1
@@ -466,7 +873,7 @@ fn audit_syntax(tokens) {
         push(errors, {"line": line, "message": "Syntax Error: Expected `{` to start control block"})
       }
     }
-    
+
     if type == "WHILE" {
       let hasBlock = false
       let temp = i + 1
@@ -490,7 +897,7 @@ fn audit_syntax(tokens) {
         push(errors, {"line": line, "message": "Syntax Error: Expected `{` to start control block"})
       }
     }
-    
+
     if type == "MODEL" {
       let hasBlock = false
       let temp = i + 1
@@ -514,7 +921,7 @@ fn audit_syntax(tokens) {
         push(errors, {"line": line, "message": "Syntax Error: Expected prompt block `{` after model call"})
       }
     }
-    
+
     if type == "IMAGE" {
       let hasBlock = false
       let temp = i + 1
@@ -538,7 +945,7 @@ fn audit_syntax(tokens) {
         push(errors, {"line": line, "message": "Syntax Error: Expected prompt block `{` after image call"})
       }
     }
-    
+
     if type == "IDENTIFIER" {
       if inPromptBraceDepth == -1 && inPrint == false {
         if tok.lexeme == "exec" {
@@ -577,22 +984,177 @@ fn audit_syntax(tokens) {
             }
           }
         }
-        
+        if tok.lexeme == "web_get" {
+          if i + 1 < n {
+            let next = tokens[i+1]
+            if next.type != "LEFT_PAREN" {
+              if next.type != "NEWLINE" {
+                if next.type != "EOF" {
+                  push(errors, {"line": line, "message": "Syntax Error: `web_get` is a builtin function, expected `(` instead of whitespace"})
+                }
+              }
+            }
+          }
+        }
+        if tok.lexeme == "web_send" {
+          if i + 1 < n {
+            let next = tokens[i+1]
+            if next.type != "LEFT_PAREN" {
+              if next.type != "NEWLINE" {
+                if next.type != "EOF" {
+                  push(errors, {"line": line, "message": "Syntax Error: `web_send` is a builtin function, expected `(` instead of whitespace"})
+                }
+              }
+            }
+          }
+        }
+        if tok.lexeme == "make_dir" {
+          if i + 1 < n {
+            let next = tokens[i+1]
+            if next.type != "LEFT_PAREN" {
+              if next.type != "NEWLINE" {
+                if next.type != "EOF" {
+                  push(errors, {"line": line, "message": "Syntax Error: `make_dir` is a builtin function, expected `(` instead of whitespace"})
+                }
+              }
+            }
+          }
+        }
+        if tok.lexeme == "list_dir" {
+          if i + 1 < n {
+            let next = tokens[i+1]
+            if next.type != "LEFT_PAREN" {
+              if next.type != "NEWLINE" {
+                if next.type != "EOF" {
+                  push(errors, {"line": line, "message": "Syntax Error: `list_dir` is a builtin function, expected `(` instead of whitespace"})
+                }
+              }
+            }
+          }
+        }
+        if tok.lexeme == "spawn" {
+          if i + 1 < n {
+            let next = tokens[i+1]
+            if next.type != "LEFT_PAREN" {
+              if next.type != "NEWLINE" {
+                if next.type != "EOF" {
+                  push(errors, {"line": line, "message": "Syntax Error: `spawn` is a builtin function, expected `(` instead of whitespace"})
+                }
+              }
+            }
+          }
+        }
+        if tok.lexeme == "trash" {
+          if i + 1 < n {
+            let next = tokens[i+1]
+            if next.type != "LEFT_PAREN" {
+              if next.type != "NEWLINE" {
+                if next.type != "EOF" {
+                  push(errors, {"line": line, "message": "Syntax Error: `trash` is a builtin function, expected `(` instead of whitespace"})
+                }
+              }
+            }
+          }
+        }
+        if tok.lexeme == "rename" {
+          if i + 1 < n {
+            let next = tokens[i+1]
+            if next.type != "LEFT_PAREN" {
+              if next.type != "NEWLINE" {
+                if next.type != "EOF" {
+                  push(errors, {"line": line, "message": "Syntax Error: `rename` is a builtin function, expected `(` instead of whitespace"})
+                }
+              }
+            }
+          }
+        }
+        if tok.lexeme == "archive" {
+          if i + 1 < n {
+            let next = tokens[i+1]
+            if next.type != "LEFT_PAREN" {
+              if next.type != "NEWLINE" {
+                if next.type != "EOF" {
+                  push(errors, {"line": line, "message": "Syntax Error: `archive` is a builtin function, expected `(` instead of whitespace"})
+                }
+              }
+            }
+          }
+        }
+        if tok.lexeme == "python" {
+          let isDeclarationName = false
+          if i > 0 {
+            let prev = tokens[i-1]
+            if prev.type == "LET" { isDeclarationName = true }
+          }
+          if isDeclarationName == false {
+            if i + 1 < n {
+              let next = tokens[i+1]
+              let looksLikeBareCall = false
+              if next.type == "STRING" { looksLikeBareCall = true }
+              if next.type == "NUMBER" { looksLikeBareCall = true }
+              if next.type == "IDENTIFIER" { looksLikeBareCall = true }
+              if next.type == "LEFT_BRACE" { looksLikeBareCall = true }
+              if next.type == "LEFT_BRACKET" { looksLikeBareCall = true }
+              if looksLikeBareCall {
+                if next.type != "LEFT_PAREN" {
+                  push(errors, {"line": line, "message": "Syntax Error: `python` is a builtin function, expected `(` instead of whitespace"})
+                }
+              }
+            }
+          }
+        }
+        if tok.lexeme == "js" {
+          let isDeclarationName = false
+          if i > 0 {
+            let prev = tokens[i-1]
+            if prev.type == "LET" { isDeclarationName = true }
+          }
+          if isDeclarationName == false {
+            if i + 1 < n {
+              let next = tokens[i+1]
+              let looksLikeBareCall = false
+              if next.type == "STRING" { looksLikeBareCall = true }
+              if next.type == "NUMBER" { looksLikeBareCall = true }
+              if next.type == "IDENTIFIER" { looksLikeBareCall = true }
+              if next.type == "LEFT_BRACE" { looksLikeBareCall = true }
+              if next.type == "LEFT_BRACKET" { looksLikeBareCall = true }
+              if looksLikeBareCall {
+                if next.type != "LEFT_PAREN" {
+                  push(errors, {"line": line, "message": "Syntax Error: `js` is a builtin function, expected `(` instead of whitespace"})
+                }
+              }
+            }
+          }
+        }
+
         // Look for statement termination violations (let x = 1 let y = 2)
         if i + 1 < n {
           let next = tokens[i+1]
           if next.type == "LET" {
             push(errors, {"line": line, "message": "Parser Mismatch: Expected end of statement, got 'let'"})
           }
-          if next.type == "CONST" {
-            push(errors, {"line": line, "message": "Parser Mismatch: Expected end of statement, got 'const'"})
-          }
           if next.type == "IDENTIFIER" {
             let isKeywordCall = false
             if tok.lexeme == "exec" { isKeywordCall = true }
+            if tok.lexeme == "run" { isKeywordCall = true }
             if tok.lexeme == "write_file" { isKeywordCall = true }
             if tok.lexeme == "read_file" { isKeywordCall = true }
-            
+            if tok.lexeme == "append_file" { isKeywordCall = true }
+            if tok.lexeme == "write_image" { isKeywordCall = true }
+            if tok.lexeme == "open_file" { isKeywordCall = true }
+            if tok.lexeme == "open" { isKeywordCall = true }
+            if tok.lexeme == "web_get" { isKeywordCall = true }
+            if tok.lexeme == "web_send" { isKeywordCall = true }
+            if tok.lexeme == "make_dir" { isKeywordCall = true }
+            if tok.lexeme == "list_dir" { isKeywordCall = true }
+            if tok.lexeme == "spawn" { isKeywordCall = true }
+            if tok.lexeme == "trash" { isKeywordCall = true }
+            if tok.lexeme == "rename" { isKeywordCall = true }
+            if tok.lexeme == "archive" { isKeywordCall = true }
+            if tok.lexeme == "zip" { isKeywordCall = true }
+            if tok.lexeme == "python" { isKeywordCall = true }
+            if tok.lexeme == "js" { isKeywordCall = true }
+
             if isKeywordCall == false {
               push(errors, {"line": line, "message": "Parser Mismatch: Expected end of statement, got '" + next.lexeme + "'"})
             }
@@ -600,15 +1162,175 @@ fn audit_syntax(tokens) {
         }
       }
     }
-    
+
+    // Foreign language syntax detection in let-assigned string literals
+    if type == "STRING" {
+      let isBuiltinCodeArg = false
+      if i >= 2 {
+        let callName = tokens[i-2]
+        let callParen = tokens[i-1]
+        if callName.type == "IDENTIFIER" {
+          if callParen.type == "LEFT_PAREN" {
+            if callName.lexeme == "python" { isBuiltinCodeArg = true }
+            if callName.lexeme == "js" { isBuiltinCodeArg = true }
+          }
+        }
+      }
+      if i >= 3 {
+        if isBuiltinCodeArg == false {
+          let p1 = tokens[i-1]
+          let p2 = tokens[i-2]
+          let p3 = tokens[i-3]
+          if p1.type == "EQUAL" {
+            if p2.type == "IDENTIFIER" {
+              if p3.type == "LET" {
+              let val = tok.lexeme
+              let foreignFound = false
+              let foreignLang = ""
+              let foreignPat = ""
+
+              // JavaScript and Python are supported intentionally through js() and python().
+
+              // Java / C#
+              if foreignFound == false { let s = split(val, "public static"); if len(s) > 1 { foreignFound = true; foreignLang = "Java/C#"; foreignPat = "public static" } }
+              if foreignFound == false { let s = split(val, "public class"); if len(s) > 1 { foreignFound = true; foreignLang = "Java/C#"; foreignPat = "public class" } }
+              if foreignFound == false { let s = split(val, "System.out."); if len(s) > 1 { foreignFound = true; foreignLang = "Java"; foreignPat = "System.out." } }
+              if foreignFound == false { let s = split(val, "using System"); if len(s) > 1 { foreignFound = true; foreignLang = "C#"; foreignPat = "using System" } }
+
+              // C / C++
+              if foreignFound == false { let s = split(val, "#include"); if len(s) > 1 { foreignFound = true; foreignLang = "C/C++"; foreignPat = "#include" } }
+              if foreignFound == false { let s = split(val, "using namespace"); if len(s) > 1 { foreignFound = true; foreignLang = "C++"; foreignPat = "using namespace" } }
+
+              // PHP
+              if foreignFound == false { let s = split(val, "<?php"); if len(s) > 1 { foreignFound = true; foreignLang = "PHP"; foreignPat = "<?php" } }
+
+              // Go
+              if foreignFound == false { let s = split(val, "package main"); if len(s) > 1 { foreignFound = true; foreignLang = "Go"; foreignPat = "package main" } }
+              if foreignFound == false { let s = split(val, "fmt.Println"); if len(s) > 1 { foreignFound = true; foreignLang = "Go"; foreignPat = "fmt.Println" } }
+
+              // Rust
+              if foreignFound == false { let s = split(val, "println!"); if len(s) > 1 { foreignFound = true; foreignLang = "Rust"; foreignPat = "println!" } }
+
+              if foreignFound {
+                push(errors, {"line": line, "message": "Possible " + foreignLang + " syntax in string literal (`" + foreignPat + "`). Verify this is intentional — Sesi is not " + foreignLang + ".", "isWarning": true})
+              }
+              }
+            }
+          }
+        }
+      }
+    }
+
     i = i + 1
   }
-  
+
   if parenDepth > 0 { push(errors, {"line": lastOpenParen, "message": "Parser Mismatch: Unclosed parenthesis '('"}) }
   if bracketDepth > 0 { push(errors, {"line": lastOpenBracket, "message": "Parser Mismatch: Unclosed bracket '['"}) }
   if braceDepth > 0 { push(errors, {"line": lastOpenBrace, "message": "Parser Mismatch: Unbalanced curly braces '{}'"}) }
-  
+
   return errors
+}
+
+/**
+  Masks non-code segments in a line of Sesi code, such as strings and block comments.
+
+  Parameters:
+  - line: The line of code to be processed.
+  - startInString: A boolean indicating if the line starts inside a string.
+  - startInBlockComment: A boolean indicating if the line starts inside a block comment.
+  - startQuote: The quote character that started the string, if any.
+
+  Returns:
+  An object containing the masked line, updated inString and inBlockComment states, and the current quote character.
+*/
+fn mask_non_code_segments(line, startInString, startInBlockComment, startQuote) {
+  let chars = split(line, "")
+  let n = len(chars)
+  let i = 0
+  let inString = startInString
+  let inBlockComment = startInBlockComment
+  let quote = startQuote
+  let masked = ""
+
+  while i < n {
+    let c = chars[i]
+
+    if inBlockComment {
+      if c == "*" {
+        if i + 1 < n {
+          if chars[i + 1] == "/" {
+            masked = masked + "  "
+            inBlockComment = false
+            i = i + 2
+            continue
+          }
+        }
+      }
+      masked = masked + " "
+      i = i + 1
+      continue
+    }
+
+    if inString {
+      if c == "\\" {
+        masked = masked + " "
+        i = i + 1
+        if i < n {
+          masked = masked + " "
+          i = i + 1
+        }
+        continue
+      }
+      if c == quote {
+        inString = false
+        masked = masked + " "
+        i = i + 1
+        continue
+      }
+      masked = masked + " "
+      i = i + 1
+      continue
+    }
+
+    if c == "/" {
+      if i + 1 < n {
+        if chars[i + 1] == "/" {
+          while i < n {
+            masked = masked + " "
+            i = i + 1
+          }
+          continue
+        }
+        if chars[i + 1] == "*" {
+          masked = masked + "  "
+          inBlockComment = true
+          i = i + 2
+          continue
+        }
+      }
+    }
+
+    if c == '"' {
+      inString = true
+      quote = '"'
+      masked = masked + " "
+      i = i + 1
+      continue
+    }
+
+    if c == "'" {
+      inString = true
+      quote = "'"
+      masked = masked + " "
+      i = i + 1
+      continue
+    }
+
+    masked = masked + c
+    i = i + 1
+  }
+
+  return {"line": masked, "inString": inString, "inBlockComment": inBlockComment, "quote": quote}
 }
 
 let targetFiles = []
@@ -618,7 +1340,7 @@ if len(args) > 0 {
   let arg0 = args[0]
   let parts = split(arg0, ".")
   let ext = parts[len(parts) - 1]
-  
+
   if ext == "sesi" {
     push(targetFiles, arg0)
     isSingleFile = true
@@ -639,7 +1361,7 @@ if len(args) > 0 {
         }
       }
     } catch (e) {
-      print "Failed to list directory:" e
+      show "Failed to list directory:" e
     }
   }
 } else {
@@ -672,7 +1394,7 @@ let report = ""
 
 if isSingleFile == false {
   report = "# Sesi Workspace Syntax Audit\n\n"
-  report = report + "Generated on: " + str(time()) + "\n\n"
+  report = report + color("Generated on: " + str(format(now(), {"timeZone": "America/New_York"})), "yellow") + "\n\n"
 }
 
 for filePath in targetFiles {
@@ -681,101 +1403,167 @@ for filePath in targetFiles {
   } else {
     report = report + "Auditing: " + filePath + "\n\n"
   }
-  
+
   try {
-    let content = read_file(filePath)
+    let content = Safe.readFile(filePath)
     let fileErrors = 0
     let fileWarnings = 0
-    
+
     // Step 1: Run native Lexer
     let fileTokens = lex(content)
-    
+
     // Step 2: Run native Parser Auditor
     let syntaxErrors = audit_syntax(fileTokens)
     for sErr in syntaxErrors {
       if sErr.isWarning {
-        report = report + "* **Line " + str(sErr.line) + ":** ⚠️ [WARN] " + sErr.message + "\n"
+        report = report + "* **Line " + str(sErr.line) + color(":** ⚠️ [WARN] " + sErr.message, "yellow") + "\n"
         fileWarnings = fileWarnings + 1
       } else {
-        report = report + "* **Line " + str(sErr.line) + ":** 🔴 [ERROR] " + sErr.message + "\n"
+        report = report + "* **Line " + str(sErr.line) + color(":** 🔴 [ERROR] " + sErr.message, "red") + "\n"
         fileErrors = fileErrors + 1
       }
     }
-    
+
+    // Step 2b: Run the linter's independent lexical scope audit.
+    let scopeIssues = audit_scope(fileTokens)
+    for scopeIssue in scopeIssues {
+      if scopeIssue.isWarning {
+        report = report + "* **Line " + str(scopeIssue.line) + color(":** ⚠️ [WARN] " + scopeIssue.message, "yellow") + "\n"
+        fileWarnings = fileWarnings + 1
+      } else {
+        report = report + "* **Line " + str(scopeIssue.line) + color(":** 🔴 [ERROR] " + scopeIssue.message, "red") + "\n"
+        fileErrors = fileErrors + 1
+      }
+    }
+
     // Step 3: Run Semantic audits on lines
     let lines = split(content, "\n")
     let idx = 0
     let tryStartDepth = -1
     let fnStartDepth = -1
     let braceDepth = 0
-    
+    let inSemanticString = false
+    let inSemanticBlockComment = false
+    let semanticQuote = '"'
+
     for line in lines {
       idx = idx + 1
-      
+      let maskedLine = mask_non_code_segments(line, inSemanticString, inSemanticBlockComment, semanticQuote)
+      let auditLine = maskedLine["line"]
+      inSemanticString = maskedLine["inString"]
+      inSemanticBlockComment = maskedLine["inBlockComment"]
+      semanticQuote = maskedLine["quote"]
+      let jsCodeCallParts = split(auditLine, "js(")
+      if len(jsCodeCallParts) > 1 {
+        auditLine = ""
+      }
+      let pythonCodeCallParts = split(auditLine, "python(")
+      if len(pythonCodeCallParts) > 1 {
+        auditLine = ""
+      }
+      let jsSuffixParts = split(auditLine, "let suffix =")
+      if len(jsSuffixParts) > 1 {
+        auditLine = ""
+      }
+
       // Calculate scopes
-      let openCount = len(split(line, "{")) - 1
-      let closeCount = len(split(line, "}")) - 1
-      
-      let fnSegs = split(line, "fn ")
+      let openCount = len(split(auditLine, "{")) - 1
+      let closeCount = len(split(auditLine, "}")) - 1
+
+      let fnSegs = split(auditLine, "fn ")
       if len(fnSegs) > 1 { fnStartDepth = braceDepth }
-      
-      let trySegs = split(line, "try ")
+
+      let trySegs = split(auditLine, "try ")
       if len(trySegs) > 1 { tryStartDepth = braceDepth }
-      
+
       braceDepth = braceDepth + openCount - closeCount
-      
+
       // Forbidden const
-      let constSegs = split(line, "const ")
+      let constSegs = split(auditLine, "const ")
       if len(constSegs) > 1 {
-        report = report + "* **Line " + str(idx) + ":** 🔴 [ERROR] Forbidden `const` keyword detected. Use `let` instead.\n"
+        report = report + "* **Line " + str(idx) + color(":** 🔴 [ERROR] Forbidden `const` keyword detected. Use `let` instead.", "red") + "\n"
         fileErrors = fileErrors + 1
       }
-      
+
       // Unwrapped I/O
-      let writeSegs = split(line, "write_file(")
-      let readSegs = split(line, "read_file(")
+      let writeSegs = split(auditLine, "write_file(")
+      let readSegs = split(auditLine, "read_file(")
+      let webGetSegs = split(auditLine, "web_get(")
+      let webSendSegs = split(auditLine, "web_send(")
       if len(writeSegs) > 1 {
         if tryStartDepth == -1 {
-          report = report + "* **Line " + str(idx) + ":** 🔴 [ERROR] Unwrapped `write_file` call. Enclose in a try/catch block to prevent filesystem contention crashes.\n"
+          report = report + "* **Line " + str(idx) + color(":** 🔴 [ERROR] Unwrapped `write_file` call. Enclose in a try/catch block to prevent filesystem contention crashes.", "red") + "\n"
           fileErrors = fileErrors + 1
         }
       }
       if len(readSegs) > 1 {
         if tryStartDepth == -1 {
-          report = report + "* **Line " + str(idx) + ":** 🔴 [ERROR] Unwrapped `read_file` call. Enclose in a try/catch block to prevent filesystem contention crashes.\n"
+          report = report + "* **Line " + str(idx) + color(":** 🔴 [ERROR] Unwrapped `read_file` call. Enclose in a try/catch block to prevent filesystem contention crashes.", "red") + "\n"
           fileErrors = fileErrors + 1
         }
       }
-      
-      // JSON Serialization
-      let stringifySegs = split(line, "stringify(")
-      if len(stringifySegs) > 1 {
-        report = report + "* **Line " + str(idx) + ":** ⚠️ [WARN] Avoid `stringify()` for JSON. Use native `to_json()` instead.\n"
-        fileWarnings = fileWarnings + 1
+      if len(webGetSegs) > 1 {
+        if tryStartDepth == -1 {
+          report = report + "* **Line " + str(idx) + color(":** ⚠️ [WARN] Unwrapped `web_get` call. Wrap in try/catch to handle network failures gracefully.", "yellow") + "\n"
+          fileWarnings = fileWarnings + 1
+        }
       }
-      
-      // Forbid main() wrappers
-      let mainSegs = split(line, "fn main(")
-      let mainCallSegs = split(line, "main()")
-      if len(mainSegs) > 1 {
-        report = report + "* **Line " + str(idx) + ":** 🔴 [ERROR] Forbid `main()` wrappers. Sesi executes at top-level.\n"
-        fileErrors = fileErrors + 1
-      }
-      if len(mainCallSegs) > 1 {
-        report = report + "* **Line " + str(idx) + ":** 🔴 [ERROR] Forbid `main()` wrappers. Sesi executes at top-level.\n"
-        fileErrors = fileErrors + 1
-      }
-      
-      // Top-level return
-      let returnSegs = split(line, "return ")
-      if len(returnSegs) > 1 {
-        if fnStartDepth == -1 {
-          report = report + "* **Line " + str(idx) + ":** 🔴 [ERROR] Avoid top-level `return` statement; Sesi scripts execute at the top level.\n"
-          fileErrors = fileErrors + 1
+      if len(webSendSegs) > 1 {
+        if tryStartDepth == -1 {
+          report = report + "* **Line " + str(idx) + color(":** ⚠️ [WARN] Unwrapped `web_send` call. Wrap in try/catch to handle network failures gracefully.", "yellow") + "\n"
+          fileWarnings = fileWarnings + 1
         }
       }
 
-      
+      // Risky / destructive operations
+      let trashSegs = split(auditLine, "trash(")
+      let execSegs = split(auditLine, "exec(")
+      let renameSegs = split(auditLine, "rename(")
+      let archiveSegs = split(auditLine, "archive(")
+      if len(trashSegs) > 1 {
+        if tryStartDepth == -1 {
+          report = report + "* **Line " + str(idx) + color(":** 🔴 [ERROR] Unwrapped `trash()` call. This permanently deletes files/directories — always wrap in try/catch.", "red") + "\n"
+          fileErrors = fileErrors + 1
+        }
+      }
+      if len(execSegs) > 1 {
+        if tryStartDepth == -1 {
+          report = report + "* **Line " + str(idx) + color(":** ⚠️ [WARN] Unwrapped `exec()` call. Shell commands can fail or have destructive side effects — wrap in try/catch.", "yellow") + "\n"
+          fileWarnings = fileWarnings + 1
+        }
+      }
+      if len(renameSegs) > 1 {
+        if tryStartDepth == -1 {
+          report = report + "* **Line " + str(idx) + color(":** ⚠️ [WARN] Unwrapped `rename()` call. Filesystem mutations can throw on invalid paths or permissions — wrap in try/catch.", "yellow") + "\n"
+          fileWarnings = fileWarnings + 1
+        }
+      }
+      if len(archiveSegs) > 1 {
+        if tryStartDepth == -1 {
+          report = report + "* **Line " + str(idx) + color(":** ⚠️ [WARN] Unwrapped `archive()` call. File copy operations can throw on permission or path errors — wrap in try/catch.", "yellow") + "\n"
+          fileWarnings = fileWarnings + 1
+        }
+      }
+
+      // JSON Serialization
+      let stringifySegs = split(auditLine, "stringify(")
+      if len(stringifySegs) > 1 {
+        report = report + "* **Line " + str(idx) + color(":** ⚠️ [WARN] Avoid `stringify()` for JSON. Use native `to_json()` instead.", "yellow") + "\n"
+        fileWarnings = fileWarnings + 1
+      }
+
+      // Forbid fn main wrappers
+      let mainSegs = split(auditLine, "fn main(")
+      let mainCallSegs = split(auditLine, "main()")
+      if len(mainSegs) > 1 {
+        report = report + "* **Line " + str(idx) + color(":** 🔴 [ERROR] Forbid `main()` wrappers. Sesi executes at top-level.", "red") + "\n"
+        fileErrors = fileErrors + 1
+      }
+      if len(mainCallSegs) > 1 {
+        report = report + "* **Line " + str(idx) + color(":** 🔴 [ERROR] Forbid `main()` wrappers. Sesi executes at top-level.", "red") + "\n"
+        fileErrors = fileErrors + 1
+      }
+
       // Scope resolution
       if tryStartDepth != -1 {
         if braceDepth <= tryStartDepth { tryStartDepth = -1 }
@@ -784,21 +1572,21 @@ for filePath in targetFiles {
         if braceDepth <= fnStartDepth { fnStartDepth = -1 }
       }
     }
-    
+
     if fileErrors == 0 {
       if fileWarnings == 0 {
-        report = report + "✓ No issues detected.\n\n"
+        report = report + color("✓ No issues detected.\n\n", "green")
       }
     }
-    
+
     if fileErrors > 0 {
-      report = report + "* **Errors:** " + str(fileErrors) + " 🔴\n"
+      report = report + color("* **Errors:** " + str(fileErrors), "red") + "\n"
     }
     if fileWarnings > 0 {
-      report = report + "* **Warnings:** " + str(fileWarnings) + " ⚠️\n"
+      report = report + color("* **Warnings:** " + str(fileWarnings), "yellow") + "\n"
     }
     report = report + "\n"
-    
+
     totalErrors = totalErrors + fileErrors
     totalWarnings = totalWarnings + fileWarnings
   } catch (e) {
@@ -807,23 +1595,24 @@ for filePath in targetFiles {
 }
 
 if isSingleFile {
-  print report
-  print "Summary:"
-  print "  Errors: " totalErrors " 🔴"
-  print "  Warnings: " totalWarnings " ⚠️"
+  show report
+  show "Summary:"
+  TERM.info("  Errors: " + str(totalErrors))
+  TERM.info("  Warnings: " + str(totalWarnings))
 } else {
   report = report + "### Workspace Summary\n\n"
-  report = report + "* **Total Sesi Files Audited:** " + str(len(targetFiles)) + "\n"
-  report = report + "* **Total Errors:** " + str(totalErrors) + " 🔴\n"
-  report = report + "* **Total Warnings:** " + str(totalWarnings) + " ⚠️\n"
-  
+  report = report + color("* **Total Sesi Files Audited:** " + str(len(targetFiles)) + "\n", "cyan")
+  report = report + color("* **Total Errors:** " + str(totalErrors) + " 🔴\n", "red")
+  report = report + color("* **Total Warnings:** " + str(totalWarnings) + " ⚠️\n", "yellow")
+
   try {
-    let success = write_file("lint_report.md", report)
+    let success = Safe.writeFile("lint_report.md", report)
     if success {
-      print "✓ Workspace audit completed."
-      print "✓ Report compiled programmatically to lint_report.md"
+      TERM.success("Workspace audit completed.")
+      TERM.success("Report compiled.")
+      TERM.warning("Please open 'lint_report.md' to review.")
     }
   } catch (e) {
-    print "Failed to compile report:" e
+    TERM.error("Failed to compile report:" + str(e))
   }
 }

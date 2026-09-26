@@ -1,63 +1,76 @@
+allow "helpers/safe" in as Safe
+
 let sf2_docs = ""
 try {
-  sf2_docs = read_file("sf2/GeneralUser-GS.md")
+  sf2_docs = Safe.readFile("sf2/GeneralUser-GS.md")
 } catch (err) {}
 
 let second_love_code = ""
 try {
-  second_love_code = read_file("make/second_love.sesi")
+  second_love_code = Safe.readFile("make/second_love.sesi")
   second_love_code = swap(second_love_code, "\"songs/second_love.wav\"", "\"output.wav\"")
   second_love_code = swap(second_love_code, "\"songs/second_love.mid\"", "\"output.mid\"")
 } catch (err) {}
 
 let stadium_anthem_code = ""
 try {
-  stadium_anthem_code = read_file("make/stadium_anthem.sesi")
+  stadium_anthem_code = Safe.readFile("make/stadium_anthem.sesi")
   stadium_anthem_code = swap(stadium_anthem_code, "\"songs/stadium_anthem.wav\"", "\"output.wav\"")
   stadium_anthem_code = swap(stadium_anthem_code, "\"songs/stadium_anthem.mid\"", "\"output.mid\"")
 } catch (err) {}
 
 let vaporwave_code = ""
 try {
-  vaporwave_code = read_file("make/vaporwave.sesi")
+  vaporwave_code = Safe.readFile("make/vaporwave.sesi")
   vaporwave_code = swap(vaporwave_code, "\"songs/vaporwave.wav\"", "\"output.wav\"")
   vaporwave_code = swap(vaporwave_code, "\"songs/vaporwave.mid\"", "\"output.mid\"")
 } catch (err) {}
 
 let ceremonious_march_code = ""
 try {
-  ceremonious_march_code = read_file("make/ceremonious_march.sesi")
+  ceremonious_march_code = Safe.readFile("make/ceremonious_march.sesi")
   ceremonious_march_code = swap(ceremonious_march_code, "\"songs/ceremonial_march.wav\"", "\"output.wav\"")
   ceremonious_march_code = swap(ceremonious_march_code, "\"songs/ceremonial_march.mid\"", "\"output.mid\"")
 } catch (err) {}
 
 let disco_song_code = ""
 try {
-  disco_song_code = read_file("make/build_disco_song.sesi")
+  disco_song_code = Safe.readFile("make/build_disco_song.sesi")
   disco_song_code = swap(disco_song_code, "\"songs/disco_groove.wav\"", "\"output.wav\"")
   disco_song_code = swap(disco_song_code, "\"songs/disco_groove.mid\"", "\"output.mid\"")
 } catch (err) {}
 
+let mpc_code = ""
+try {
+  mpc_code = Safe.readFile("examples/demo.sesi")
+  mpc_code = swap(mpc_code, "\"songs/track-by-sesi.wav\"", "\"output.wav\"")
+  mpc_code = swap(mpc_code, "\"songs/track-by-sesi.mid\"", "\"output.mid\"")
+} catch (err) {}
+
 export let PREPACKAGED_EXAMPLES = {
+  "A swung MPC track with minor synth bass and a changing arrangement.": {
+    brief: "A native MPC arrangement: an opening atmosphere develops into a verse, lift, and hook, drops to a half-time bridge, then returns for a final hook and resolution. Synthesized bass and lead one-shots sit with native drums, fills, evolving dynamics, and MPC sampler color.",
+    code: mpc_code
+  },
   "A beautiful song that captures the feeling of falling in love for the second time.": {
-    "brief": "### Style/Genre\nEmotional Ballad / Soft Pop\n\n### Section Plan\n- **Intro**: 4 bars. Ambient piano and strings.\n- **Verse**: 8 bars. Add acoustic guitar arpeggios.\n- **Pre-Chorus**: 4 bars. Tension build, classical resolution.\n- **Chorus**: 16 bars. Soaring lead synth melody, full drums.\n- **Outro**: 4 bars. Soft acoustic guitar fade out.\n*Total 36 bars*",
-    "code": second_love_code
+    brief: "### Style/Genre\nEmotional Ballad / Soft Pop\n\n### Section Plan\n- **Intro**: 4 bars. Ambient piano and strings.\n- **Verse**: 8 bars. Add acoustic guitar arpeggios.\n- **Pre-Chorus**: 4 bars. Tension build, classical resolution.\n- **Chorus**: 16 bars. Soaring lead synth melody, full drums.\n- **Outro**: 4 bars. Soft acoustic guitar fade out.\n*Total 36 bars*",
+    code: second_love_code
   },
   "An epic, high-energy entrance theme for a championship football game.": {
-    "brief": "### Style/Genre\nEpic Stadium Rock / Brass Anthem\n\n### Section Plan\n- **Intro**: 4 bars. Heavy stadium drums and claps.\n- **Verse 1**: 8 bars. Add finger bass and soft brass stabs.\n- **Chorus**: 8 bars. Soaring brass melody and loud drums.\n- **Outro**: 4 bars. Heavy outro groove ending on final hit.\n*Total 24 bars*",
-    "code": stadium_anthem_code
+    brief: "### Style/Genre\nEpic Stadium Rock / Brass Anthem\n\n### Section Plan\n- **Intro**: 4 bars. Heavy stadium drums and claps.\n- **Verse 1**: 8 bars. Add finger bass and soft brass stabs.\n- **Chorus**: 8 bars. Soaring brass melody and loud drums.\n- **Outro**: 4 bars. Heavy outro groove ending on final hit.\n*Total 24 bars*",
+    code: stadium_anthem_code
   },
   "A dreamy vaporwave track with a cassette vibe, dynamic neon cover art, and a saxophone lead.": {
-    "brief": "### Style/Genre\nVaporwave / Dream Pop / Chillwave\n\n### Section Plan\n- **Intro**: 4 bars. Warm synth pad playing Fmaj7-Gmaj7-Em7-Am7 chords with 80 BPM drums.\n- **Verse**: 4 bars. Add glassy Tine EP arpeggios and slow synth bass.\n- **Chorus**: 8 bars. Tenor Saxophone plays a nostalgic, sweeping melody.\n- **Outro**: 4 bars. Saxophone rests, chords and keys fade out under drum groove.\n*Total 20 bars*",
-    "code": vaporwave_code
+    brief: "### Style/Genre\nVaporwave / Dream Pop / Chillwave\n\n### Section Plan\n- **Intro**: 4 bars. Warm synth pad playing Fmaj7-Gmaj7-Em7-Am7 chords with 80 BPM drums.\n- **Verse**: 4 bars. Add glassy Tine EP arpeggios and slow synth bass.\n- **Chorus**: 8 bars. Tenor Saxophone plays a nostalgic, sweeping melody.\n- **Outro**: 4 bars. Saxophone rests, chords and keys fade out under drum groove.\n*Total 20 bars*",
+    code: vaporwave_code
   },
   "A stately processional fanfare and march featuring trumpets, French horns, trombones, strings, and timpani.": {
-    "brief": "### Style/Genre\nStately Processional / Ceremonial Fanfare\n\n### Section Plan\n- **The Fanfare Call**: 4 bars. Bright Trumpet call in C Major with French Horn harmony and dramatic Timpani strikes.\n- **Processional Theme**: 8 bars. Majestic arpeggiated string outline and trombone stately bassline under trumpet main melody.\n- **Grand Climax**: 4 bars. Tutti call-and-response resolving to a final grand accent strike.\n*Total 16 bars*",
-    "code": ceremonious_march_code
+    brief: "### Style/Genre\nStately Processional / Ceremonial Fanfare\n\n### Section Plan\n- **The Fanfare Call**: 4 bars. Bright Trumpet call in C Major with French Horn harmony and dramatic Timpani strikes.\n- **Processional Theme**: 8 bars. Majestic arpeggiated string outline and trombone stately bassline under trumpet main melody.\n- **Grand Climax**: 4 bars. Tutti call-and-response resolving to a final grand accent strike.\n*Total 16 bars*",
+    code: ceremonious_march_code
   },
   "A classic 4-bar disco groove featuring electric bass, Rhodes stabs, synth lead, and handclaps.": {
-    "brief": "### Style/Genre\nSoundFont Disco / Dance / Groove\n\n### Section Plan\n- **Groove**: 4 bars. Four-on-the-floor kick drum, hi-hats on offbeats, stereo handclaps/snare on beats 2 & 4, electric bass, Rhodes stabs, and synth lead melody.\n*Total 4 bars*",
-    "code": disco_song_code
+    brief: "### Style/Genre\nSoundFont Disco / Dance / Groove\n\n### Section Plan\n- **Groove**: 4 bars. Four-on-the-floor kick drum, hi-hats on offbeats, stereo handclaps/snare on beats 2 & 4, electric bass, Rhodes stabs, and synth lead melody.\n*Total 4 bars*",
+    code: disco_song_code
   }
 }
 
@@ -66,8 +79,8 @@ let example_keys = keys(PREPACKAGED_EXAMPLES)
 for key in example_keys {
   let data = PREPACKAGED_EXAMPLES[key]
   examples_text = examples_text + "Description: " + key + "\n\n"
-  examples_text = examples_text + "-- Brief --\n" + data["brief"] + "\n\n"
-  examples_text = examples_text + "-- Target Code --\n```sesi\n" + data["code"] + "\n```\n\n"
+  examples_text = examples_text + "-- Brief --\n" + data.brief + "\n\n"
+  examples_text = examples_text + "-- Target Code --\n```sesi\n" + data.code + "\n```\n\n"
 }
 
 prompt STAGE1_SYS {"You are a musical creative director. Your job is to take a short, high-level description of a song or mood from a user and expand it into a detailed musical brief. 
@@ -89,6 +102,8 @@ Critical requirements:
 5. Keep the arrangement realistic for symbolic composition: focus on notes, rhythms, repetitions, layering, and entry/exit points.
 6. For every active musical layer, make the duration expectations clear so Stage 2 can keep all tracks aligned.
 7. Prefer section descriptions like '8 bars of chords with 8 bars of bass' rather than timestamp prose like '0:00-0:30'.
+8. Follow the user's requested form and scope. For a song without a specified duration, design a developed arrangement with an ending; for a requested loop, design a loop. Give the exact bar count of each section and make the total consistent. The duration in 4/4 is bars * 240 / BPM.
+9. Plan native std/mpc sequencing with std/audio sounds and std/theory pitches. Preserve the requested instruments, track levels, pan and mutes. The studio swing input is 0 to 1; map it to MPC swing 50 to 75 with 50 + swing * 25.
 
 Example Input: \"A calm sunset\"
 
@@ -113,16 +128,18 @@ Title: (create one based on user input, e.g. \"Serenity Calls\")
 
 let presets_code = ""
 try {
-  presets_code = read_file("lib/presets.sesi")
+  presets_code = Safe.readFile("lib/presets.sesi")
 } catch (err) {}
 
+let mpc_reference = Safe.readFile("getting-started/MPC.md")
+
 prompt STAGE2_SYS {"You are an expert Sesi programmer. Your job is to take a detailed musical brief and generate valid .sesi code to compose music.
-Follow these syntax rules based squarely on the Sesi audio documentation:
+The Presets instructions below are retained for revisions of existing compositions. For new compositions, use the native MPC guidance after the legacy examples.\nFollow these syntax rules based squarely on the Sesi audio documentation:
 1. Output ONLY the Sesi code. No explanations, no markdown blocks.
 2. ALWAYS start with:
-allow 'std/theory' in with Music // <-- Use double quotes for strings, NOT single quotes
-allow 'std/audio' in with Audio
-allow 'lib/presets' in with Presets
+allow 'std/theory' in as Music // <-- Use double quotes for strings, NOT single quotes
+allow 'std/audio' in as Audio
+allow 'lib/presets' in as Presets
 3. Define BPM and calculate BAR_MS: let BPM = <val>; let BAR_MS = Music.bar(1.0, BPM)
 4. Use Presets.sf2 for instruments: let inst = Audio.sf2(\"sf2/GeneralUser-GS.sf2\", {\"instrument\": <GM_ID>})
 5. Refer to the GM instrument list provided to find the correct GM_ID integers.
@@ -135,7 +152,7 @@ allow 'lib/presets' in with Presets
 try {
   Presets.render_song(\"output.wav\", all_tracks) // <-- DO NOT CHANGE THIS FILENAME OR EXTENSION!
 } catch (err) {
-  print err
+  show err
 }
 12. NEVER use the `+` operator for arrays, use `push()`.
 13. After render_song, ALWAYS export MIDI by calling: Audio.midi(\"output.mid\", all_tracks)
@@ -146,7 +163,7 @@ try {
 ### GM INSTRUMENT LIST ###
 " sf2_docs "
 
-" examples_text}
+" examples_text "\n\n### NATIVE MPC GUIDANCE FOR NEW COMPOSITIONS (takes precedence over the legacy Presets instructions above) ###\n" mpc_reference "\n### WORKING NATIVE MPC COMPOSITION ###\n" mpc_code}
 
 export fn get_stage1_prompt(prompt_text: string, config_text: string) -> string {
   prompt stage1_prompt {STAGE1_SYS "

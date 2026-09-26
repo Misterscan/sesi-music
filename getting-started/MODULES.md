@@ -30,8 +30,8 @@ import {
   PI
 } from "math"
 
-print add(10, 20)   // 30
-print PI            // 3.14159
+show add(10, 20)   // 30
+show PI            // 3.14159
 ```
 
 ---
@@ -49,7 +49,7 @@ allow "math" in with {
   add, multiply
 }
 
-print add(3, 4)   // 7
+show add(3, 4)   // 7
 ```
 
 ### Namespace object
@@ -57,10 +57,10 @@ print add(3, 4)   // 7
 Import the entire module under a single identifier:
 
 ```sesi
-allow "math" in with Math
+allow "math" in as Math
 
-print Math.add(3, 4)      // 7
-print Math.multiply(2, 5) // 10
+show Math.add(3, 4)      // 7
+show Math.multiply(2, 5) // 10
 ```
 
 ---
@@ -69,35 +69,86 @@ print Math.multiply(2, 5) // 10
 
 Sesi ships with built-in standard library modules:
 
-| Module     | Namespace | Description         |
-| ---------- | --------- | ------------------- |
-| `std/math` | `Math`    | Math operations     |
-| `std/time` | `Time`    | Time/date functions |
-| `std/json` | `JSON`    | JSON parsing        |
-| `std/db`   | —         | Database access     |
+| Module     | Namespace | Description                                      |
+| ---------- | --------- | ------------------------------------------------ |
+| `std/math` | `Math`    | Math operations                                  |
+| `std/time` | `Time`    | Time/date functions                              |
+| `std/db`   | —         | Database access                                  |
+| `std/game` | `Game`    | Optional Babylon-powered 3D desktop game engine  |
+... and more!
 
 ```sesi
-allow "std/math" in with Math
-allow "std/time" in with Time
-allow "std/json" in with JSON
+allow "std/math" in as Math
+allow "std/time" in as Time
+allow "std/game" in as Game
 
-print Math.PI
-print Time.now()
-print JSON.parse("[1,2,3]")
+show Math.PI
+show Math.atan2(1, 0)
+show Math.min(8, 3, 5)
+show Math.floor(3.9) // floor is globally available too
+show Time.now()
 ```
+
+`std/math` provides the complete stable JavaScript `Math` surface supported by Node.js 20+.
+
+`std/game` requires `npm install @misterscan/sesi-game` and local mode (`sesi -l`). Its complete API is in [GAME.md](GAME.md).
 
 ---
 
 ## Module Resolution Order
 
-When you import `"mymodule"`, Sesi searches for `mymodule.sesi` in this order:
+When you import `"mymodule"`, Sesi searches for `mymodule.sesi` (or the folder `mymodule` for directory modules) in this order:
 
 | Priority | Location                  | Description                                                           |
 | -------- | ------------------------- | --------------------------------------------------------------------- |
 | 1        | Script's own directory    | Same folder as the running `.sesi` file                               |
 | 2        | Current working directory | Where you ran `sesi` from                                             |
-| 3        | `SESI_PATH`               | Colon-separated (Unix) or semicolon-separated (Windows) list of paths |
-| 4        | `~/.sesi/lib`             | Global shared library, available system-wide                          |
+| 3        | `sesi_modules/`           | Project third-party dependencies directory                            |
+| 4        | `SESI_PATH`               | Colon-separated (Unix) or semicolon-separated (Windows) list of paths |
+| 5        | `~/.sesi/lib`             | Global shared library, available system-wide                          |
+
+---
+
+## Third-Party Package Management
+
+Sesi features a built-in, git-centric package manager to install and share reusable libraries. Packages are stored inside a local `sesi_modules` directory in your project.
+
+### Project Manifest (`sesi.json`)
+
+To track dependencies, Sesi uses a simple `sesi.json` file in the root of your project:
+
+```json
+{
+  "name": "my-project",
+  "version": "1.0.0",
+  "dependencies": {
+    "http-router": "example-repo/http-router#v1.0.0"
+  }
+}
+```
+
+### Installation Commands
+
+- **Install a specific package**:
+
+  ```bash
+  sesi install owner/repo#ref
+  ```
+
+  This downloads the package from GitHub, extracts it to `sesi_modules/repo`, and registers it inside `sesi.json`. You can specify branch names, tag names, or commit hashes using `#ref`.
+
+- **Restore all dependencies**:
+  ```bash
+  sesi install
+  ```
+  This reads your `sesi.json` and restores all dependencies into `sesi_modules/`.
+
+### Directory Modules & Entry Points
+
+When you import a third-party package folder (e.g. `allow "repo" in as Repo`), Sesi automatically resolves the module's entry point. It checks the directory for:
+
+1. `sesi_modules/<package-name>/index.sesi`
+2. `sesi_modules/<package-name>/main.sesi`
 
 ---
 
@@ -142,8 +193,8 @@ $env:SESI_PATH = "C:\MyLibs\shared;C:\Projects\common"
 
 ```sesi
 // Export
-export fn greet(name) { print "Hello," name }
-export let VERSION = "2.0"
+export fn greet(name) { show "Hello," name }
+export let VERSION = "1.9.1"
 
 // import (named)
 import { greet, VERSION } from "mymodule"
@@ -152,13 +203,12 @@ import { greet, VERSION } from "mymodule"
 allow "mymodule" in with { greet, VERSION }
 
 // allow (namespace)
-allow "mymodule" in with Mod
+allow "mymodule" in as Mod
 Mod.greet("Ada")
 
 // Standard library
-allow "std/math" in with Math
-allow "std/time" in with Time
-allow "std/json" in with JSON
+allow "std/math" in as Math
+allow "std/time" in as Time
 ```
 
 ---

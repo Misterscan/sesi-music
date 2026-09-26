@@ -19,7 +19,7 @@ Sesi is a **clean, minimal, side-effect-oriented** scripting language. It is:
 
 ```sesi
 let name    = "Sesi"
-let version = 2
+let version = 1.7.5
 let active  = true
 let missing         // null (uninitialized)
 ```
@@ -284,10 +284,10 @@ Sesi's unique string-composition primitive. Replaces template literals.
 
 ```sesi
 let name = "Ada"
-let ver  = "2.0"
+let ver  = "1.7.5"
 
 prompt header {"Welcome to Sesi" ver ". Hello," name}
-// header = "Welcome to Sesi 2.0. Hello, Ada"
+// header = "Welcome to Sesi 1.7.5. Hello, Ada"
 
 print header
 write_file("out.txt", header)
@@ -311,7 +311,7 @@ The newline is a real line break _inside the string literal_ — not `\n`, not a
 
 ```sesi
 prompt fullName {first last}
-prompt badge {"[Developer]" fullName}
+prompt badge {"[Developer] "fullName}
 ```
 
 ### Prefer prompt blocks over `+` inside `print`
@@ -332,7 +332,7 @@ print "Hello, " + name + " version " + str(version)
 
 ```sesi
 export fn add(a, b) { return a + b }
-export let VERSION = "2.0"
+export let VERSION = "1.7.5"
 ```
 
 ### Importing — `import` (named)
@@ -390,7 +390,7 @@ try {
 
 ---
 
-## 9. std/draw — SVG Drawing
+## 9. std/draw — SVG and Pixel Drawing
 
 ```sesi
 allow "std/draw" in with Draw
@@ -457,6 +457,16 @@ Draw.save_svg("output.svg", 400, 300)
 Draw.clear()                       // reset buffer
 ```
 
+### Raster Pixels
+
+```sesi
+Draw.pixel(x, y, color)
+Draw.pixel_grid(grid, palette, scale?, x?, y?)
+Draw.save_png(path, width, height, background?)
+```
+
+Pixel calls write to a raster buffer, not the SVG. `pixel_grid` accepts array rows or compact string rows and expands each cell by `scale`. `save_png` encodes the buffer as a true RGBA PNG; the background defaults to transparent.
+
 ### Layer Order
 
 Shapes are rendered in draw-call order — **earlier calls appear behind later ones**.
@@ -468,7 +478,7 @@ Shapes are rendered in draw-call order — **earlier calls appear behind later o
 ### Basic call
 
 ```sesi
-let response = model("gemini-3.5-flash") {"Summarize this:" text}
+let response = model("gemini-3.6-flash") {"Summarize this:" text}
 print response
 ```
 
@@ -478,7 +488,7 @@ print response
 
 ```sesi
 // Config block comes between model name and prompt block
-let result = model("gemini-3.5-flash") {thinkingLevel: "medium", max_tokens: 500} {"Analyze this:" doc}
+let result = model("gemini-3.6-flash") {thinkingLevel: "medium", max_tokens: 500} {"Analyze this:" doc}
 ```
 
 > Config keys are **unquoted identifiers** (schema objects).
@@ -496,19 +506,19 @@ let result = model("gemini-3.5-flash") {thinkingLevel: "medium", max_tokens: 500
 
 ```sesi
 // Vision
-let desc = model("gemini-3.5-flash") {images: "photo.png"} {"Describe this image."}
+let desc = model("gemini-3.6-flash") {images: "photo.png"} {"Describe this image."}
 
 // Streaming
-let r = model("gemini-3.1-flash-lite") {stream: true} {"Write a poem."}
+let r = model("gemini-3.5-flash-lite") {stream: true} {"Write a poem."}
 
 // No cache + search
-let news = model("gemini-3.1-flash-lite") {search, cache: false} {"Latest AI news."}
+let news = model("gemini-3.5-flash-lite") {search, cache: false} {"Latest AI news."}
 ```
 
 ### Image Generation
 
 ```sesi
-let img = image("gemini-2.5-flash-image") {ratio: "16:9", size: "1K"} {"A cyberpunk city at night"}
+let img = image("gemini-3.1-flash-image-lite") {ratio: "16:9", size: "1K"} {"A cyberpunk city at night"}
 write_image("banner.png", img)
 ```
 
@@ -670,7 +680,36 @@ These are always available — no imports needed:
 | `to_json(obj)`   | Serialize object → JSON string   |
 | `from_json(str)` | Parse JSON string → object/array |
 
+### Speech & Translation
+
+| Function | Description |
+| -------- | ----------- |
+| `speech(text, voice?, gemini?)` | Speak text with the system voice or Gemini |
+| `from_speech(path, language?, gemini?)` | Transcribe with Whisper or Gemini |
+| `translate(text, to, from?, gemini?)` | Translate with the `translate` package or Gemini |
+
+`from_speech()` needs Whisper and a local model.
+
 > Always use `to_json()` for serialization. Never use `stringify()`.
+
+### Token Usage & Cost
+
+| Function | Description |
+| -------- | ----------- |
+| `tokenize(text, model?)` | Return local plain-text token IDs; also supports `"simple"` word splitting |
+| `count_tokens(text, model?)` | Count through the selected OpenAI, Gemini, or local tokenizer |
+| `estimate_tokens(text, model?)` | Estimate locally without an API request |
+| `estimate_cost(model, input, output?)` | Estimate paid-tier text-token cost |
+| `model_usage()` | Inspect actual usage from the latest model call |
+
+```sesi
+let planned = estimate_cost("gemini-3.6-flash", prompt, 1000)
+let answer = model("gemini-3.6-flash") {max_tokens: 1000} {prompt}
+let actual = model_usage()
+print actual["total_tokens"] actual["total_cost_usd"]
+```
+
+These are deliberately separate: `tokenize()` is local and returns IDs, `count_tokens()` asks the selected provider for an exact request count, and `estimate_tokens()` is the explicit offline approximation.
 
 ### Math & Randomness (Must be used as "std/math")
 
@@ -692,16 +731,24 @@ These are always available — no imports needed:
 | `write_image(path, data)` | Write image data to file            |
 | `list_dir(path)`          | List directory → array of filenames |
 | `make_dir(path)`          | Create directory → bool             |
+| `rename(old, new)`        | Rename or move file/directory       |
+| `archive(src, dest?)`     | Backup/copy file/directory          |
+| `trash(path, auto?)`      | Delete (trash or permanent remove)  |
 
 ### Misc
 
-| Function             | Description                            |
-| -------------------- | -------------------------------------- |
-| `input(prompt)`      | Read a line from stdin                 |
-| `print ...`          | Print space-separated values to stdout |
-| `swap(str, a, b)`    | String swap/replacement utility        |
-| `define_tool(n,f,d)` | Register a function as a named AI tool |
-| `list_tools()`       | List all registered tools              |
+| Function             | Description                                         |
+| -------------------- | --------------------------------------------------- |
+| `input(prompt)`      | Read a line from stdin                              |
+| `print ...`          | Print space-separated values to stdout              |
+| `swap(str, a, b)`    | String swap/replacement utility                     |
+| `define_tool(n,f,d)` | Register a function as a named AI tool              |
+| `list_tools()`       | List all registered tools                           |
+| `exec(cmd)`          | Run a system shell command (blocked in Safe Mode)   |
+| `spawn(path)`        | Run a background Sesi script (blocked in Safe Mode) |
+| `python(code, args)` | Run inline Python code (blocked in Safe Mode)       |
+| `js(code, args)`     | Run inline JavaScript code (blocked in Safe Mode)   |
+| `html(body, opts)`   | Build a complete HTML document string               |
 
 ## FOR MORE PLEASE VISIT "BUILTINS.md" EITHER IN docs/ OR IF NOT PRESENT, THEN IN node_modules/@misterscan/sesi/docs/BUILTINS.md
 
@@ -734,7 +781,7 @@ prompt title {
 let obj = {"name": "Ada", "age": 42}
 
 // Config/schema blocks: unquoted identifiers
-let r = model("gemini-3.5-flash") {thinkingLevel: "low", max_tokens: 100} {"Hello"}
+let r = model("gemini-3.6-flash") {thinkingLevel: "low", max_tokens: 100} {"Hello"}
 ```
 
 ### 3. No `const`, no `var`, no `return` at top level
@@ -908,8 +955,8 @@ import { fn1, fn2 } from "mymodule"
 try { let data = read_file("f.json") } catch (err) { print "Error:" err }
 
 // AI
-let r = model("gemini-3.5-flash") {thinkingLevel: "low"} {"Question:" q}
-let img = image("gemini-2.5-flash-image") {ratio: "1:1"} {"A forest"}
+let r = model("gemini-3.6-flash") {thinkingLevel: "low"} {"Question:" q}
+let img = image("gemini-3.1-flash-image-lite") {ratio: "1:1"} {"A forest"}
 write_image("out.png", img)
 
 // Network

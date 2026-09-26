@@ -1,26 +1,27 @@
 # Audio in Sesi
 
-Sesi includes two optional standard-library modules for working with sound: `std/audio` for synthesis and playback, and `std/theory` for music-theory helpers. Neither requires any external installation — just `allow` the module and go.
+Sesi includes three optional standard-library modules for working with sound: `std/audio` for synthesis and playback, `std/theory` for music-theory helpers, and `std/mpc` for Akai MPC-inspired track sequencing, Roger Linn swing, pad matrices, choke groups, AIR multi-mode effects, and vintage hardware converter modeling. None require external installation — just `allow` the module and go.
 
 ---
 
 ## Importing the Modules
 
 ```
-allow "std/audio" in with <alias>
-allow "std/theory" in with <alias>
+allow "std/audio" in as <alias>
+allow "std/theory" in as <alias>
+allow "std/mpc" in as <alias>
 ```
 
-`allow` loads a module and binds it to any identifier you choose — the name after `with` is just a local namespace alias. These are all equally valid:
+`allow` loads a module and binds it to any identifier you choose — the name after `as` is just a local namespace alias. These are all equally valid:
 
 ```sesi
-allow "std/audio" in with Audio      // conventional
-allow "std/audio" in with sound      // also fine
-allow "std/audio" in with snd        // also fine
-allow "std/audio" in with a          // also fine
+allow "std/audio" in as Audio      // conventional
+allow "std/audio" in as sound      // also fine
+allow "std/audio" in as snd        // also fine
+allow "std/audio" in as a          // also fine
 ```
 
-The examples below use `Audio` and `Music` as readable conventions, but you are free to pick any name that fits your script.
+The examples below use `Audio`, `Music`, and `MPC` as readable conventions, but you are free to pick any name that fits your script.
 
 ---
 
@@ -35,7 +36,7 @@ Audio.beep(frequency, duration)
 Play a simple sine-wave tone. `frequency` is in Hz; `duration` is in milliseconds.
 
 ```sesi
-allow "std/audio" in with Audio
+allow "std/audio" in as Audio
 
 Audio.beep(440, 200)   // 440 Hz (concert A) for 200 ms
 Audio.beep(880, 100)   // one octave up, shorter
@@ -52,7 +53,7 @@ Audio.play(note, duration, options?)
 Play a musical note by name (e.g. `"C4"`, `"A#3"`, `"Bb5"`). `options` accepts ADSR, volume, and panning.
 
 ```sesi
-allow "std/audio" in with Audio
+allow "std/audio" in as Audio
 
 Audio.play("C4", 500)
 Audio.play("E4", 500)
@@ -72,10 +73,10 @@ Returns a base64-encoded WAV string instead of playing audio. Useful for passing
 Supported `type` values: `"sine"`, `"square"`, `"saw"`, `"triangle"`, `"noise"`, `"kick"`, `"snare"`, `"hat"`, `"clap"`.
 
 ```sesi
-allow "std/audio" in with Audio
+allow "std/audio" in as Audio
 
 let wav_b64 = Audio.synth(440, 1000, "square")
-print "WAV data length:" len(wav_b64)
+show "WAV data length:" len(wav_b64)
 ```
 
 ---
@@ -89,10 +90,35 @@ Audio.save(path, frequency_or_note, duration, type, options?)
 Synthesize a tone and write it directly to a WAV file.
 
 ```sesi
-allow "std/audio" in with Audio
+allow "std/audio" in as Audio
 
 // Save a 2-second sine-wave A4 note with fade-in and fade-out
-Audio.save("tone.wav", "A4", 2000, "sine", {"attack": 50, "release": 500})
+Audio.save("tone.wav", "A4", 2000, "sine", {attack: 50, release: 500})
+```
+
+---
+
+### Load a WAV File — `Audio.load`
+
+```
+Audio.load(path) -> audio_sample
+```
+
+Read a WAV file from disk and return an `audio_sample` object containing the decoded PCM data. Useful for inspecting or processing existing audio files.
+
+**Returns:** An object with:
+
+| Field        | Type            | Description                                  |
+| ------------ | --------------- | -------------------------------------------- |
+| `samples`    | `array<number>` | Normalized PCM floats in the range `[-1, 1]` |
+| `sampleRate` | `number`        | Sample rate in Hz (e.g. `44100`)             |
+
+```sesi
+allow "std/audio" in as Audio
+
+let s = Audio.load("loop.wav")
+show "Sample rate:" s.sampleRate
+show "Total samples:" len(s.samples)
 ```
 
 ---
@@ -111,25 +137,25 @@ Save a multi-note sequence to a single WAV file. `notes_array` can be:
 
 **Note object fields:**
 
-| Field    | Type     | Description                                  |
-| -------- | -------- | -------------------------------------------- |
-| `note`   | `string` | Note name (e.g. `"C4"`)                      |
-| `ms`     | `number` | Duration in milliseconds                     |
-| `vol`    | `number` | Volume `0.0–1.0` (default `1.0`)             |
-| `pan`    | `number` | Stereo pan `-1.0` (left) to `1.0` (right)    |
-| `cutoff` | `number` | Low-pass filter cutoff frequency in Hz       |
+| Field    | Type     | Description                               |
+| -------- | -------- | ----------------------------------------- |
+| `note`   | `string` | Note name (e.g. `"C4"`)                   |
+| `ms`     | `number` | Duration in milliseconds                  |
+| `vol`    | `number` | Volume `0.0–1.0` (default `1.0`)          |
+| `pan`    | `number` | Stereo pan `-1.0` (left) to `1.0` (right) |
+| `cutoff` | `number` | Low-pass filter cutoff frequency in Hz    |
 
 ```sesi
-allow "std/audio" in with Audio
+allow "std/audio" in as Audio
 
 let song = [
-  {"note": "C4", "ms": 500, "vol": 0.8},
-  {"note": "E4", "ms": 500, "pan": -0.5},
-  {"note": "G4", "ms": 1000, "cutoff": 5000}
+  {note: "C4", ms: 500, vol: 0.8},
+  {note: "E4", ms: 500, pan: -0.5},
+  {note: "G4", ms: 1000, cutoff: 5000}
 ]
 
 Audio.sequence("song.wav", song, "triangle")
-print "Saved song.wav"
+show "Saved song.wav"
 ```
 
 ---
@@ -143,20 +169,20 @@ Audio.mix(path, tracks_array, type, options?)
 Mix several tracks into a single stereo WAV. `tracks_array` is an array of note arrays — each inner array is one track. The mixer supports ADSR envelopes, LPF filtering (`cutoff`), stereo `pan`, and soft-clipping saturation (`saturate`).
 
 ```sesi
-allow "std/audio" in with Audio
+allow "std/audio" in as Audio
 
 let melody = [
-  {"note": "C4", "ms": 500},
-  {"note": "E4", "ms": 500},
-  {"note": "G4", "ms": 500}
+  {note: "C4", ms: 500},
+  {note: "E4", ms: 500},
+  {note: "G4", ms: 500}
 ]
 
 let bass = [
-  {"note": "C2", "ms": 1500, "vol": 0.7}
+  {note: "C2", ms: 1500, vol: 0.7}
 ]
 
-Audio.mix("mix.wav", [melody, bass], "sine", {"saturate": 1.2})
-print "Saved mix.wav"
+Audio.mix("mix.wav", [melody, bass], "sine", {saturate: 1.2})
+show "Saved mix.wav"
 ```
 
 ---
@@ -171,39 +197,66 @@ Load a SoundFont (`.sf2`) file and return an **instrument function** bound to a 
 
 **Options:**
 
-| Field        | Type     | Description                            |
-| ------------ | -------- | -------------------------------------- |
-| `instrument` | `number` | GM program number (default `0` = piano)|
-| `channel`    | `number` | MIDI channel (default `0`)             |
-| `gain`       | `number` | Output gain multiplier (default `1.0`) |
+| Field        | Type     | Description                             |
+| ------------ | -------- | --------------------------------------- |
+| `instrument` | `number` | GM program number (default `0` = piano) |
+| `channel`    | `number` | MIDI channel (default `0`)              |
+| `gain`       | `number` | Output gain multiplier (default `1.0`)  |
 
 ```sesi
-allow "std/audio" in with Audio
+allow "std/audio" in as Audio
 
-let piano      = Audio.sf2("GeneralUser-GS.sf2", {"instrument": 0,  "gain": 1.5})
-let string_pad = Audio.sf2("GeneralUser-GS.sf2", {"instrument": 49})
+let piano      = Audio.sf2("GeneralUser-GS.sf2", {instrument: 0,  gain: 1.5})
+let string_pad = Audio.sf2("GeneralUser-GS.sf2", {instrument: 49})
 
 let lead = [piano("C4", 500), piano("E4", 500), piano("G4", 500)]
 let pad  = [string_pad("C3", 1500)]
 
 Audio.mix("full_mix.wav", [lead, pad], "sine")
-print "Saved full_mix.wav"
+show "Saved full_mix.wav"
 ```
 
 ---
 
-### Drum Synthesis
+### Drum Hits — `Audio.kick` / `Audio.snare` / `Audio.hat` / `Audio.clap`
 
-The `"kick"`, `"snare"`, `"hat"`, and `"clap"` waveform types use native physical modeling, so no SoundFont is required for basic drum tracks:
+```
+Audio.kick(duration?, volume?)  -> string  // base64 WAV
+Audio.snare(duration?, volume?) -> string
+Audio.hat(duration?, volume?)   -> string
+Audio.clap(duration?, volume?)   -> string
+```
+
+Generate a single drum hit using native physical modeling — no SoundFont required. Each function returns a base64-encoded WAV string that can be written to disk with `write_file(..., "base64")` or passed directly into `Audio.mix`.
+
+| Function      | Default `duration` | Default `volume` | Character          |
+| ------------- | ------------------ | ---------------- | ------------------ |
+| `Audio.kick`  | `300` ms           | `1.0`            | Deep, punchy bass  |
+| `Audio.snare` | `200` ms           | `1.0`            | Bright crack       |
+| `Audio.hat`   | `50` ms            | `1.0`            | Short, sharp click |
+| `Audio.clap`  | `100` ms           | `1.0`            | Bright clap        |
 
 ```sesi
-allow "std/audio" in with Audio
+allow "std/audio" in as Audio
 
-let kick  = {"note": "C1", "ms": 500, "type": "kick"}
-let snare = {"note": "C4", "ms": 500, "type": "snare"}
-let hat   = {"note": "G8", "ms": 250, "type": "hat", "pan": 0.3}
+let k = Audio.kick(300, 1.0)
+let s = Audio.snare(200, 0.8)
+let h = Audio.hat(50, 0.6)
 
-Audio.sequence("drums.wav", [kick, snare, hat], "kick")
+// Save a kick drum directly to disk
+write_file("kick.wav", Audio.kick(300), "base64")
+
+// Mix a drum pattern
+Audio.mix("drums.wav", [[k, s, h]], "sine")
+```
+
+You can also reference them by `type` field inside a sequence note object (the older style still works):
+
+```sesi
+Audio.sequence("drums.wav", [
+  {note: "C1", ms: 300, type: "kick"},
+  {note: "C4", ms: 200, type: "snare"}
+], "kick")
 ```
 
 ---
@@ -217,16 +270,16 @@ Audio.midi(path, tracks) -> bool
 Saves one or more tracks (arrays of note objects/strings) directly as a standard MIDI (.mid) file on disk.
 
 ```sesi
-allow "std/audio" in with Audio
+allow "std/audio" in as Audio
 
 let track = [
-  {"note": "C4", "ms": 500},
-  {"note": "E4", "ms": 500},
-  {"note": "G4", "ms": 1000}
+  {note: "C4", ms: 500},
+  {note: "E4", ms: 500},
+  {note: "G4", ms: 1000}
 ]
 
 Audio.midi("song.mid", track)
-print "MIDI file saved to song.mid"
+show "MIDI file saved to song.mid"
 ```
 
 ---
@@ -238,7 +291,7 @@ print "MIDI file saved to song.mid"
 `std/theory` removes the manual math from algorithmic composition. It includes helper functions for converting time divisions and chords/scales into Sesi-native note array inputs.
 
 ```sesi
-allow "std/theory" in with Music
+allow "std/theory" in as Music
 ```
 
 ---
@@ -252,7 +305,7 @@ Music.duration(minutes, seconds) -> number
 Convert minutes and seconds to absolute milliseconds.
 
 ```sesi
-allow "std/theory" in with Music
+allow "std/theory" in as Music
 
 let ms = Music.duration(1, 30) // 90000 ms
 ```
@@ -268,7 +321,7 @@ Music.bar(bars, bpm, beatsPerBar?) -> number
 Convert a number of musical bars into milliseconds based on BPM and time signature (default: 4/4).
 
 ```sesi
-allow "std/theory" in with Music
+allow "std/theory" in as Music
 
 let ms = Music.bar(8, 120) // 8 bars at 120bpm -> 16000 ms
 ```
@@ -286,12 +339,12 @@ Return the notes of a chord rooted at `root`.
 **Supported types:** `"M"`, `"m"`, `"dim"`, `"aug"`, `"7"`, `"M7"`, `"m7"`, `"sus2"`, `"sus4"`
 
 ```sesi
-allow "std/theory" in with Music
+allow "std/theory" in as Music
 
 let c_maj7  = Music.chord("C4", "M7")  // ["C4", "E4", "G4", "B4"]
 let a_minor = Music.chord("A3", "m")   // ["A3", "C4", "E4"]
 
-print c_maj7
+show c_maj7
 ```
 
 ---
@@ -307,10 +360,10 @@ Return all notes of a scale starting at `root`.
 **Supported types:** `"major"`, `"minor"`, `"dorian"`, `"phrygian"`, `"lydian"`, `"mixolydian"`, `"locrian"`
 
 ```sesi
-allow "std/theory" in with Music
+allow "std/theory" in as Music
 
 let a_minor = Music.scale("A3", "minor")
-print a_minor
+show a_minor
 ```
 
 ---
@@ -324,13 +377,13 @@ Music.transpose(notes, semitones) -> array<string>
 Shift a note or an array of notes up (positive) or down (negative) by the given number of semitones.
 
 ```sesi
-allow "std/theory" in with Music
+allow "std/theory" in as Music
 
 let c_maj7   = Music.chord("C4", "M7")          // ["C4", "E4", "G4", "B4"]
 let f_maj7   = Music.transpose(c_maj7, 5)        // ["F4", "A4", "C5", "E5"]
 let b_maj7   = Music.transpose(c_maj7, -1)       // ["B3", "D#4", "F#4", "A#4"]
 
-print f_maj7
+show f_maj7
 ```
 
 ---
@@ -338,8 +391,8 @@ print f_maj7
 ## Combining std/audio and std/theory
 
 ```sesi
-allow "std/audio"  in with Audio
-allow "std/theory" in with Music
+allow "std/audio"  in as Audio
+allow "std/theory" in as Music
 
 // Build a progression from music theory
 let c_chord = Music.chord("C4", "M")    // ["C4", "E4", "G4"]
@@ -350,7 +403,7 @@ fn chord_notes(notes, duration) {
   let out = []
   let i = 0
   while i < len(notes) {
-    push(out, {"note": notes[i], "ms": duration})
+    push(out, {note: notes[i], ms: duration})
     i = i + 1
   }
   return out
@@ -361,7 +414,7 @@ let g_track = chord_notes(g_chord, 600)
 
 Audio.sequence("c_chord.wav", c_track, "sine")
 Audio.sequence("g_chord.wav", g_track, "triangle")
-print "Chord files saved."
+show "Chord files saved."
 ```
 
 ---
@@ -371,13 +424,13 @@ print "Chord files saved."
 Wrap audio I/O in `try/catch` to guard against missing files or unsupported formats:
 
 ```sesi
-allow "std/audio" in with Audio
+allow "std/audio" in as Audio
 
 try {
   Audio.save("output.wav", "C4", 1000, "sine")
-  print "Saved successfully"
+  show "Saved successfully"
 } catch (err) {
-  print "Audio error:" err
+  show "Audio error:" err
 }
 ```
 
@@ -386,8 +439,8 @@ try {
 ## Quick Reference
 
 ```sesi
-allow "std/audio"  in with Audio
-allow "std/theory" in with Music
+allow "std/audio"  in as Audio
+allow "std/theory" in as Music
 
 // Beep
 Audio.beep(440, 200)
@@ -399,25 +452,268 @@ Audio.play("A4", 500)
 let b64 = Audio.synth("C4", 1000, "square")
 
 // Save a single tone
-Audio.save("tone.wav", "C4", 1000, "sine", {"attack": 30, "release": 200})
+Audio.save("tone.wav", "C4", 1000, "sine", {attack: 30, release: 200})
+
+// Load a WAV file into an audio_sample object
+let sample = Audio.load("loop.wav")
+show sample.sampleRate
+
+// Drum hits (returns base64 WAV)
+let k = Audio.kick(300, 1.0)
+let s = Audio.snare(200, 0.8)
+let h = Audio.hat(50, 0.6)
+write_file("kick.wav", k, "base64")
+write_file("snare.wav", s, "base64")
+write_file("hat.wav", h, "base64")
 
 // Save a sequence
-Audio.sequence("seq.wav", [{"note": "C4", "ms": 500}, {"note": "E4", "ms": 500}], "triangle")
+Audio.sequence("seq.wav", [{note: "C4", ms: 500}, {note: "E4", ms: 500}], "triangle")
 
 // Mix tracks
-Audio.mix("mix.wav", [[{"note": "C4", "ms": 500}], [{"note": "C2", "ms": 500}]], "sine")
+Audio.mix("mix.wav", [[{note: "C4", ms: 500}], [{note: "C2", ms: 500}]], "sine")
 
 // Export MIDI
-Audio.midi("song.mid", [{"note": "C4", "ms": 500}, {"note": "E4", "ms": 500}])
+Audio.midi("song.mid", [{note: "C4", ms: 500}, {note: "E4", ms: 500}])
 
 // SoundFont instrument
-let piano = Audio.sf2("font.sf2", {"instrument": 0})
+let piano = Audio.sf2("font.sf2", {instrument: 0})
 Audio.mix("song.wav", [[piano("C4", 500), piano("G4", 500)]], "sine")
 
 // Music theory
 let scale  = Music.scale("C4", "major")
 let chord  = Music.chord("A3", "m7")
 let moved  = Music.transpose(chord, 7)
+```
+
+---
+
+## std/mpc — Akai MPC Track Sequencing & Performance Controls
+
+`std/mpc` brings authentic Akai MPC (Music Production Center) workflow to Sesi: 16-pad matrix banks, the Roger Linn MPC swing algorithm (50%–75%), 16 Levels performance mode, Note Repeat with triplet divisions, voice Choke Groups, multi-track step sequencing, vintage converter modeling (`mpc60`, `mpc3000`, `sp1200`), AIR multi-mode insert effects, and broadcast-ready WAV and multi-track MIDI file export.
+
+```sesi
+allow "std/mpc" in as MPC
+```
+
+---
+
+### Create an MPC Sequence — `MPC.sequence`
+
+```
+MPC.sequence(name, bars?, bpm?, time_sig?) -> sequence
+```
+
+Creates a sequence container with tracks, tempo, bar count, and swing settings.
+
+```sesi
+allow "std/mpc" in as MPC
+
+let seq = MPC.sequence("Boom Bap Groove", 2, 92, "4/4")
+seq.set_swing(58)         // 58% classic Roger Linn MPC swing
+seq.set_vintage("mpc60")  // 12-bit punchy vintage converter emulation
+```
+
+---
+
+### Setup a 16-Pad Drum Kit — `MPC.drum_kit`
+
+```
+MPC.drum_kit(nameOrPreset?) -> drum_kit
+```
+
+Creates an Akai MPC 16-pad drum program. Pads support levels, panning, semitone tuning, fine tuning (cents), envelopes, and choke groups.
+
+```sesi
+allow "std/mpc" in as MPC
+
+let kit = MPC.drum_kit("MPC3000 Drums")
+
+// Configure pads
+kit.set_pad(1, {sound: "kick", tune: -1, level: 1.0})
+kit.set_pad(2, {sound: "rimshot", level: 0.85})
+kit.set_pad(3, {sound: "snare", tune: 1, level: 0.95})
+kit.set_pad(4, {sound: "clap", level: 0.8})
+
+// Choke group: closed hat (Pad 5) and open hat (Pad 7) share mute_group 1
+kit.set_pad(5, {sound: "hat", mute_group: 1, level: 0.75})
+kit.set_pad(7, {sound: "open_hat", mute_group: 1, level: 0.85})
+
+// 808 sub bass
+kit.set_pad(13, {sound: "808", tune: -2, level: 0.9})
+```
+
+---
+
+### Step Sequencing & Track Patterns — `track.pattern`
+
+Add tracks to a sequence and program rhythmic patterns using step notation:
+- `'x'`: normal hit (velocity 100)
+- `'X'`: full accent (velocity 127)
+- `'-'`: ghost note (velocity 45)
+- `'1'-'9'`: stepped velocity from 10% to 90%
+- `'.'`: rest
+
+```sesi
+allow "std/mpc" in as MPC
+
+let seq = MPC.sequence("Dope Beat", 2, 90, "4/4")
+let kit = MPC.drum_kit("Boom Bap")
+
+let drums = seq.add_track("Drums", "drum", kit)
+drums.pattern(1, "x...x...x...x...") // Kick drum
+drums.pattern(3, "....x.......x...") // Snare on beats 2 and 4
+drums.pattern(5, "x.x.x.x.x.x.x.x.") // 16th hats with 58% swing
+drums.pattern(7, "..x.......x.....") // Open hats (choked by closed hats)
+```
+
+For a more visual grid, use bracketed cells. Each cell uses the selected
+`resolution`; rows are read left-to-right, then top-to-bottom.
+
+For an eight-column grid that reads as `1 & 2 & 3 & 4 &`, set
+`"resolution": "1/8"`. This is one clear 4/4 bar at 130 BPM, with one kick
+on every quarter-note beat:
+
+```sesi
+let four_on_floor = "
+[X][ ][x][ ][x][ ][x][ ]
+"
+let quantization = {resolution: "1/8"}
+drums.pattern(1, four_on_floor, quantization)
+```
+
+The four hits map to internal 16th-note steps `0`, `4`, `8`, and `12`:
+
+```text
+Visual grid: [X] [ ] [x] [ ] [x] [ ] [x] [ ]
+Musical time:  1   &   2   &   3   &   4   &
+Kick timing:   X       x       x       x
+```
+
+The default `"resolution": "1/16"` remains useful for a 16-column bar, where
+each cell is one sixteenth note.
+
+Visual grid cells use the same trigger notation as compact patterns:
+
+| Cell | Meaning |
+| --- | --- |
+| `[x]` | Normal hit at the pattern velocity |
+| `[X]` | Full accent, velocity `127` |
+| `[-]` | Ghost hit, velocity `45` |
+| `[1]` to `[9]` | Stepped velocity from 10% to 90% |
+| `[ ]` | Empty step / rest |
+
+Use `start_step` to place a visible grid later in a longer arrangement. Since
+there are 16 internal steps per 4/4 bar, `start_step: 64` begins the grid at
+bar 5:
+
+```sesi
+drums.pattern(1, four_on_floor, {
+  start_step: 64,
+  resolution: "1/8",
+  velocity: 112
+})
+```
+
+---
+
+### 16 Levels Mode — `MPC.sixteen_levels`
+
+```
+MPC.sixteen_levels(pad, mode?, options?) -> array<pad_config>
+```
+
+The official Akai MPC **16 Levels** button spreads a pad sound across all 16 pads:
+- `"velocity"`: 16 stepped velocity gradations from 8 to 127
+- `"tune"`: Chromatic tuning across 16 semitones (-12 to +3 semitones or custom base)
+- `"filter"`: Stepped lowpass cutoff frequencies from 200 Hz to 18,000 Hz
+- `"decay"`: Stepped decay times from 30 ms to 1,200 ms
+- `"attack"`: Stepped attack envelope from 0 ms to 500 ms
+
+```sesi
+allow "std/mpc" in as MPC
+
+let kit = MPC.drum_kit("Sample Kit")
+let sub = kit.get_pad(13)
+
+// Chromatic bassline across 16 pads
+let chromatic_pads = MPC.sixteen_levels(sub, "tune")
+```
+
+---
+
+### Note Repeat — `MPC.note_repeat`
+
+```
+MPC.note_repeat(pad, rate?, bars?, options?) -> array<event>
+```
+
+Quantized rhythmic repeats across `"1/4"`, `"1/8"`, `"1/16"`, `"1/32"`, `"1/64"`, and triplet divisions (`"1/4T"`, `"1/8T"`, `"1/16T"`, `"1/32T"`), with velocity ramps (`"crescendo"`, `"decrescendo"`) and accents.
+
+```sesi
+allow "std/mpc" in as MPC
+
+// 1 bar of 1/32 hi-hat roll with crescendo
+let rolls = MPC.note_repeat(5, "1/32", 1, {ramp: "crescendo", accent: 4})
+```
+
+---
+
+### Sample Slicing ("Chop Shop") — `MPC.chop`
+
+```
+MPC.chop(sampleOrPath, slices?, options?) -> drum_kit
+```
+
+Slices an audio sample or WAV file into equal regions or transients, automatically mapping each slice to Pads 1..16 with voice Choke Group 1 enabled so slices cut each other off.
+
+```sesi
+allow "std/mpc" in as MPC
+
+let chops = MPC.chop("vinyl_sample.wav", 16)
+let chop1 = chops.get_pad(1)
+```
+
+---
+
+### AIR Multi-Mode Effects & Vintage Converters
+
+Apply insert effects on tracks or master bus:
+- **`"filter"`**: cutoff, resonance, type (`"lowpass"`, `"highpass"`, `"bandpass"`), drive
+- **`"delay"`**: time_ms or sync division (`"1/8"`, `"1/16"`), feedback, ping_pong, damp, mix
+- **`"reverb"`**: room decay, damp, mix
+- **`"compressor"`**: threshold, ratio, attack, release, makeup gain
+- **`"lofi"`**: bit depth, downsampling rate, drive, mix
+- **`"eq"`**: low, mid, high dB gain
+- **Vintage modeling**: `"mpc60"`, `"mpc3000"`, `"sp1200"`
+
+```sesi
+allow "std/mpc" in as MPC
+
+let seq = MPC.sequence("Filtered Beat", 2, 90, "4/4")
+seq.add_effect("compressor", {threshold: -14, ratio: 4, makeup: 2})
+seq.add_effect("delay", {sync: "1/8", feedback: 0.35, mix: 0.25, ping_pong: true})
+```
+
+---
+
+### Exporting Audio and MIDI
+
+```sesi
+allow "std/mpc" in as MPC
+
+let seq = MPC.sequence("Master Project", 2, 92, "4/4")
+// ... configure tracks ...
+
+// Render 16-bit 44.1kHz Stereo WAV
+seq.render_wav("beat.wav")
+
+// Export Type 1 Standard MIDI File with Roger Linn swing preserved
+seq.render_midi("beat.mid")
+
+// Or render directly in-memory
+let sample = seq.render_wav("memory")
+show "Rendered sample count:" len(sample.samples)
+MPC.play(sample)
 ```
 
 ---

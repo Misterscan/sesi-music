@@ -3,7 +3,7 @@
 <p align="center">
   <img src="static/favicon.svg" alt="Sesi Music">
   <br><br>
-  <img src="badges/version.svg" alt="sesi v1.5.7" height="25">
+  <img src="badges/version.svg" alt="sesi v1.9.0" height="25">
   <img src="badges/server.svg" alt="server :8080" height="25">
   <img src="badges/license.svg" alt="license MIT" height="25">
   <img src="badges/soundfont.svg" alt="soundfont GeneralUser GS" height="25">
@@ -27,11 +27,10 @@ sesi-music/
 ├── static/             # Static web assets served by the server
 ├── sf2/                # SoundFont 2 files (GeneralUser GS — bundled)
 ├── sesi-db/            # Embedded document database files
-├── examples/           # Official Sesi syntax examples (bundled)
+├── examples/           # Demos and example scripts
 ├── chatbot/            # Sesi co-pilot / support chatbot
 ├── getting-started/    # Engine specs and onboarding docs
-├── bin/                # Sesi CLI executable and lint engine
-├── dist/               # Compiled Sesi engine
+├── bin/                # Lint engine and test runner
 ├── env.example         # Environment variable template
 └── GUIDE.md            # Complete Sesi language reference
 ```
@@ -94,7 +93,10 @@ Output `.wav` and `.mid` files are written wherever your script saves them (conv
 
 ## Composing Music
 
-Sesi's `std/audio` and `std/theory` standard library modules handle everything from single notes to full multi-track mixes.
+Sesi's `std/mpc`, `std/audio`, and `std/theory` modules now work together: MPC handles pad programs, sequencing, swing, and arrangements; Audio handles synthesis and SoundFont samples; Theory supplies pitches and musical durations.
+**Requires Sesi 1.9.0 or later.**
+
+Run the three-library example with `npm run sesi examples/demo.sesi`. It develops an MPC arrangement through an intro, verse, lift, hook, bridge, return, and outro, then exports WAV and MIDI. See [the MPC production guide](getting-started/MPC.md) for sampling, pad tuning, effects, timing, and export.
 
 ```sesi
 allow "std/audio"  in with Audio
@@ -108,17 +110,17 @@ let beat  = Music.bar(8, 120)           // 8 bars @ 120 BPM → ms
 Audio.play("C4", 500)                               // note, ms
 
 // Save to WAV
-Audio.save("tone.wav", "A4", 2000, "sine", {"attack": 50, "release": 500})
+Audio.save("tone.wav", "A4", 2000, "sine", {attack: 50, release: 500})
 
 // Sequence (multi-note track)
 let track = [
-  {"note": "C4", "ms": 500, "vol": 0.8},
-  {"note": "E4", "ms": 500, "pan": -0.5}
+  {note: "C4", ms: 500, vol: 0.8},
+  {note: "E4", ms: 500, pan: -0.5}
 ]
 Audio.sequence("songs/out.wav", track, "triangle")
 
 // Mix multiple tracks
-Audio.mix("songs/final.wav", [melody, bass, drums], "sine", {"saturate": 1.2})
+Audio.mix("songs/final.wav", [melody, bass, drums], "sine", {saturate: 1.2})
 
 // Export MIDI
 Audio.midi("songs/song.mid", track)
@@ -135,8 +137,8 @@ The project ships with the **GeneralUser GS** SoundFont (`sf2/GeneralUser-GS.sf2
 ```sesi
 allow "std/audio" in with Audio
 
-let piano = Audio.sf2("sf2/GeneralUser-GS.sf2", {"instrument": 0, "gain": 1.5})
-let bass  = Audio.sf2("sf2/GeneralUser-GS.sf2", {"instrument": 32})
+let piano = Audio.sf2("sf2/GeneralUser-GS.sf2", {instrument: 0, gain: 1.5})
+let bass  = Audio.sf2("sf2/GeneralUser-GS.sf2", {instrument: 32})
 
 let notes = [piano("C4", 500), piano("E4", 500), bass("C2", 1000)]
 Audio.mix("songs/out.wav", [notes], "sine")
@@ -245,6 +247,6 @@ npm run build   # Rebuild frontend (create/frontend.sesi)
 ## Resources
 
 - **Language Reference** → [`GUIDE.md`](./GUIDE.md) — complete Sesi syntax, builtins, and quirks
-- **Sesi Package** → [`@misterscan/sesi`](https://www.npmjs.com/package/@misterscan/sesi) v1.5.7
+- **Sesi Package** → [`@misterscan/sesi`](https://www.npmjs.com/package/@misterscan/sesi) v1.9.0
 - **SoundFont Docs** → [`sf2/GeneralUser-GS.md`](./sf2/GeneralUser-GS.md)
-- **Syntax Examples** → `examples/main/`
+- **Examples** → `examples/`

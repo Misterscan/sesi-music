@@ -1,26 +1,19 @@
-fn custom_starts_with(str, prefix) {
-  if len(str) < len(prefix) { return false }
-  return slice(str, 0, len(prefix)) == prefix
-}
-
-fn custom_ends_with(str, suffix) {
-  if len(str) < len(suffix) { return false }
-  return slice(str, len(str) - len(suffix), len(str)) == suffix
-}
+allow "helpers/safe" in as Safe
+allow "bin/ansi" in as TERM
 
 let parsed_instruments = []
 try {
-  let doc = read_file("sf2/GeneralUser-GS.md")
+  let doc = Safe.readFile("sf2/GeneralUser-GS.md")
   let lines = split(doc, "\n")
   let i = 0
   while i < len(lines) {
     let line = trim(lines[i])
-    if custom_starts_with(line, "|") {
+    if starts_with(line, "|") {
       let parts = split(line, "|")
       let j = 0
       while j < len(parts) {
         let part = trim(parts[j])
-        if custom_starts_with(part, "**") && custom_ends_with(part, "**") {
+        if starts_with(part, "**") && ends_with(part, "**") {
           let name = slice(part, 2, len(part) - 2)
           if num(name) == null && name != "Preset:" && name != "Bank:" && name != "PC:" && name != "Bank 120 or Ch.10:" && name != "version 2.0.3" && name != "revision 6" && name != "by S. Christian Collins" {
             let found = false
@@ -40,7 +33,7 @@ try {
     i = i + 1
   }
 } catch (err) {
-  print "Warning: Failed to parse GeneralUser-GS.md: " err
+  TERM.warning("Failed to parse GeneralUser-GS.md: " + err)
 }
 
 if len(parsed_instruments) == 0 {
@@ -50,49 +43,57 @@ if len(parsed_instruments) == 0 {
 export fn handle_static(req) {
   if req.method == "GET" && req.path == "/" {
     try {
-      return {"status": 200, "headers": {"Content-Type": "text/html", "Cache-Control": "no-cache, no-store, must-revalidate"}, "body": read_file("static/index.html")}
+      return {status: 200, headers: {"Content-Type": "text/html", "Cache-Control": "no-cache, no-store, must-revalidate"}, body: Safe.readFile("static/index.html")}
     } catch (e) {
-      return {"status": 404, "body": "Index file not found"}
+      return {status: 404, body: "Index file not found"}
     }
   }
   if req.method == "GET" && req.path == "/style.css" {
     try {
-      return {"status": 200, "headers": {"Content-Type": "text/css", "Cache-Control": "no-cache, no-store, must-revalidate"}, "body": read_file("static/style.css")}
+      return {status: 200, headers: {"Content-Type": "text/css", "Cache-Control": "no-cache, no-store, must-revalidate"}, body: Safe.readFile("static/style.css")}
     } catch (e) {
-      return {"status": 404, "body": "CSS file not found"}
+      return {status: 404, body: "CSS file not found"}
     }
   }
   if req.method == "GET" && req.path == "/studio.js" {
     try {
-      return {"status": 200, "headers": {"Content-Type": "application/javascript", "Cache-Control": "no-cache, no-store, must-revalidate"}, "body": read_file("static/studio.js")}
+      return {status: 200, headers: {"Content-Type": "application/javascript", "Cache-Control": "no-cache, no-store, must-revalidate"}, body: Safe.readFile("static/studio.js")}
     } catch (e) {
-      return {"status": 404, "body": "JS file not found"}
+      return {status: 404, body: "JS file not found"}
     }
   }
   if req.method == "GET" && (req.path == "/favicon.svg" || req.path == "/favicon.ico") {
     try {
-      return {"status": 200, "headers": {"Content-Type": "image/svg+xml"}, "body": read_file("static/favicon.svg")}
+      return {status: 200, headers: {"Content-Type": "image/svg+xml"}, body: Safe.readFile("static/favicon.svg")}
     } catch (e) {
-      return {"status": 200, "body": ""}
+      return {status: 200, body: ""}
     }
   }
   if req.method == "GET" && req.path == "/logo.svg" {
     try {
-      return {"status": 200, "headers": {"Content-Type": "image/svg+xml"}, "body": read_file("static/logo.svg")}
+      return {status: 200, headers: {"Content-Type": "image/svg+xml"}, body: Safe.readFile("static/logo.svg")}
     } catch (e) {
-      return {"status": 200, "body": ""}
+      return {status: 200, body: ""}
     }
   }
   
   if req.method == "GET" && req.path == "/tags" {
     let tags = {
-      "genre": ["Lo-Fi", "Synthwave", "Orchestral", "Punk", "Classical", "Dubstep", "Blues"],
-      "mood": ["Happy", "Sad", "Energetic", "Melancholic", "Epic"],
-      "structure": ["AABB", "ABAB", "Verse-Chorus"],
-      "key": ["C", "G", "D", "A", "E", "F", "Bb", "Eb"],
-      "instruments": parsed_instruments
+      genre: ["Lo-Fi", "Synthwave", "Orchestral", "Punk", "Classical", "Dubstep", "Blues"],
+      mood: ["Happy", "Sad", "Energetic", "Melancholic", "Epic"],
+      structure: ["AABB", "ABAB", "Verse-Chorus"],
+      key: ["C", "G", "D", "A", "E", "F", "Bb", "Eb"],
+      instruments: parsed_instruments
     }
-    return {"status": 200, "headers": {"Content-Type": "application/json"}, "body": to_json(tags)}
+    return {status: 200, headers: {"Content-Type": "application/json"}, body: to_json(tags)}
+  }
+
+  if req.method == "GET" && req.path == "/last-generated-code" {
+    try {
+      return {status: 200, headers: {"Content-Type": "text/plain", "Cache-Control": "no-cache, no-store, must-revalidate"}, body: Safe.readFile(".generated_song.sesi")}
+    } catch (e) {
+      return {status: 404, headers: {"Content-Type": "text/plain"}, body: ""}
+    }
   }
   
   return null

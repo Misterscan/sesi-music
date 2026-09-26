@@ -1,34 +1,36 @@
-// create_frontend.sesi
 // Programmatic generation of the Sesi Music Studio DAW web interface.
 
-print "🎨 Building native Sesi Music Studio DAW frontend assets..."
+show "🎨 Building native Sesi Music Studio DAW frontend assets..."
 
 try {
-  make_dir("static")
+  if list_dir("static") == null {
+    make_dir("static")
+  }
 } catch (err) {
-  print "Directory static already exists or cannot be created:" err
+  show "Directory static already exists or cannot be created:" err
 }
 
-allow "html" in with H
-allow "css" in with C
-allow "js" in with J
+allow "helpers/safe" in as Safe
+allow "html" in as H
+allow "css" in as C
+allow "js" in as J
 
 try {
-  write_file("static/index.html", H.html)
+  Safe.writeFile("static/index.html", H.page)
 } catch (err) {
-  print "Error writing static/index.html:" err
-}
-
-try {
-  write_file("static/style.css", C.css)
-} catch (err) {
-  print "Error writing static/style.css:" err
+  show "Error writing static/index.html:" err
 }
 
 try {
-  write_file("static/studio.js", J.js)
+  Safe.writeFile("static/style.css", C.css)
 } catch (err) {
-  print "Error writing static/studio.js:" err
+  show "Error writing static/style.css:" err
 }
 
-print "🎉 Sesi Music native studio frontend assets successfully generated!"
+try {
+  Safe.writeFile("static/studio.js", J.script)
+} catch (err) {
+  show "Error writing static/studio.js:" err
+}
+
+show "🎉 Sesi Music native studio frontend assets successfully generated!"

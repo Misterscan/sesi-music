@@ -1,18 +1,217 @@
-export let html = "<!DOCTYPE html>
-<html lang=\"en\">
+export let page = '<!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta charset=\"UTF-8\">
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-    <title>Sesi Music Studio DAW</title>
-    <link rel=\"icon\" type=\"image/svg+xml\" href=\"favicon.svg\">
-    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
-    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
-    <link href=\"https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap\" rel=\"stylesheet\">
-    <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\">
-    <link rel=\"stylesheet\" href=\"style.css\">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sesi Music Studio DAW</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Studio desk */
+    :root {
+      --bg-darkest:#f4f1eb; --bg-darker:#ffffff; --bg-panel:#ffffff;
+      --border-color:#dedbd3; --border-active:#6575b7;
+      --text-main:#22263a; --text-muted:#747b8b;
+      --accent:#596cc0; --accent-purple:#ba755b; --accent-magenta:#d26b7b;
+      --accent-green:#5f9d85; --accent-orange:#d99a58;
+      --gradient-btn:linear-gradient(135deg,#5869ba,#4659a9);
+      --gradient-btn-hover:linear-gradient(135deg,#697bd1,#5467bd);
+      --font-family:\'DM Sans\',sans-serif; --font-heading:\'Outfit\',sans-serif;
+      --shadow-main:0 8px 28px rgba(39,43,63,.04); --shadow-glow:none; --blur:none;
+    }
+    body { background:#f4f1eb; color:#22263a; }
+    .daw-container { background:none; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:#c8c7c0; }
+    ::-webkit-scrollbar-thumb:hover { background:#909bc6; }
+    .daw-header { height:72px; flex-shrink:0; padding:0 30px; background:#262b42; border-bottom:1px solid #3a4059; box-shadow:none; }
+    .logo-area { gap:13px; }
+    .logo-glow { display:none; }
+    .logo-pulse { width:40px; height:40px; border-radius:11px; background:#596bc0; animation:none; }
+    .logo-icon { font-size:20px; color:#fff; text-shadow:none; }
+    .brand-title { font-size:22px; font-weight:700; letter-spacing:-.5px; color:#fff; }
+    .brand-accent { background:none; -webkit-text-fill-color:#d8ddff; color:#d8ddff; }
+    .brand-sub { color:#aeb7da; border-color:#535b79; font-size:11px; font-weight:500; letter-spacing:1.6px; padding-left:12px; margin-left:10px; }
+    .status-container { border:1px solid #4b536f; background:#313852; border-radius:8px; padding:9px 14px; }
+    .system-status { color:#e4e8f8; letter-spacing:.01em; }
+    .status-lamp { background:#8bc9a4; box-shadow:0 0 0 3px rgba(139,201,164,.15); }
+    .daw-workspace { grid-template-columns:minmax(350px,390px) minmax(0,1fr); height:auto; min-height:0; background:#f4f1eb; }
+    .workspace-column { gap:18px; padding:24px; scrollbar-color:#c3c2ba transparent; }
+    .controls-column { background:#f3f0ea; border-right:1px solid #dcd9d1; }
+    .editor-column { background:#f8f6f2; overflow-y:auto; padding:24px 28px; }
+    .daw-panel { background:#fff; border:1px solid #dedbd4; border-radius:13px; padding:20px; box-shadow:0 2px 10px rgba(37,41,60,.025); backdrop-filter:none; -webkit-backdrop-filter:none; transition:border-color .2s,box-shadow .2s; }
+    .daw-panel::before { display:none; }
+    .daw-panel:focus-within { border-color:#9aa6da; box-shadow:0 0 0 3px rgba(89,108,192,.08); }
+    .panel-header { margin-bottom:18px; }
+    .panel-title { font-family:var(--font-heading); font-size:12px; letter-spacing:1.25px; font-weight:700; color:#454d67; }
+    .panel-title i { color:#596cc0; font-size:14px; }
+    .badge { padding:5px 9px; border-radius:6px; font-size:10px; font-weight:600; }
+    .badge.glow-cyan { color:#4358ab; border-color:#d9dfff; background:#eef0fc; }
+    .badge.glow-purple { color:#a85e47; border-color:#f0d8cb; background:#fff0e8; }
+    .composer-card { background:#fff; border:1px solid #cdd4ee; box-shadow:0 5px 22px rgba(67,83,151,.07); }
+    .composer-card .panel-title { color:#33458e; }
+    .composer-card .panel-title i { color:#596cc0; }
+    #prompt-input,#config-notes,#revision-request { background:#faf9f6; border:1px solid #dedbd4; border-radius:8px; color:#252b3e; }
+    #prompt-input::placeholder,#config-notes::placeholder,#revision-request::placeholder { color:#9297a1; opacity:1; }
+    #prompt-input { height:112px; padding:14px; font-size:13px; }
+    #prompt-input:focus,#config-notes:focus,#revision-request:focus { background:#fff; border-color:#7889c9; box-shadow:0 0 0 3px rgba(89,108,192,.09); }
+    .prompt-box-wrapper { gap:12px; }
+    .ideas-selector { border-top:1px solid #e9e7e1; margin-top:20px; padding-top:18px; gap:10px; }
+    .ideas-label { color:#71788a; font-size:10px; letter-spacing:1.1px; }
+    .ideas-tags { gap:7px; }
+    .idea-btn { border-radius:6px; border:1px solid #e2e2df; background:#f7f6f2; color:#4c5265; padding:8px 10px; font-weight:600; }
+    .idea-btn:hover { background:#e9edfc; border-color:#a9b3df; color:#354997; box-shadow:none; }
+    .settings-card > .panel-title,.mixer-card > .panel-title,.directives-card > .panel-title { margin-bottom:18px; }
+    .settings-grid { gap:17px; }
+    .settings-item label { color:#697184; }
+    .range-val { color:#4559a9; }
+    .range-control { background:#f7f6f3; border:1px solid #e6e3dd; border-radius:7px; padding:10px 12px; }
+    .unit,.control-icon { color:#8a90a0; }
+    select { background:#f8f7f4; border-color:#e1ded8; color:#31374e; border-radius:7px; min-width:0; }
+    select:focus { border-color:#7789c9; box-shadow:0 0 0 3px rgba(89,108,192,.08); }
+    input[type="range"]::-webkit-slider-runnable-track { background:#cfd3dd; }
+    input[type="range"]::-webkit-slider-thumb { background:#596cc0; border:2px solid #fff; box-shadow:0 1px 4px rgba(39,50,91,.2); }
+    .mixer-rack { gap:8px; }
+    .mixer-channel { grid-template-columns:66px minmax(0,1fr); padding:12px 10px 12px 17px; background:#faf9f6; border:1px solid #e6e3dd; border-radius:7px; }
+    .mixer-channel:hover { background:#f5f5f9; border-color:#bac3e1; }
+    .vu-meter { width:4px; background:#e8e8e1; border-radius:7px 0 0 7px; }
+    .vu-bar-fill { background:linear-gradient(to top,#5f9d85,#d99a58,#d26b7b); }
+    .channel-name { color:#30374d; }
+    .channel-num,.pan-label { color:#8b91a0; }
+    .channel-controls { gap:7px; flex-wrap:wrap; min-width:0; }
+    .fader-control { min-width:40px; }
+    .pan-control { width:48px; }
+    .mute-btn { flex-shrink:0; background:#fff; border-color:#dbdce3; color:#6e7586; }
+    .mute-btn.active { background:#fce9e9; border-color:#e5aaa8; color:#aa4c4c; text-shadow:none; box-shadow:none; }
+    .channel-inst { width:100%; max-width:132px; background:#fff; }
+    .directives-card #config-notes { height:82px; }
+    /* The orchestration surface intentionally contrasts with the light controls. */
+    .editor-card { background:#272d43; border-color:#272d43; padding:20px; min-height:240px; box-shadow:0 10px 28px rgba(33,38,62,.11); }
+    .editor-card:focus-within { border-color:#6478c2; box-shadow:0 10px 28px rgba(33,38,62,.14); }
+    .editor-header-bar { background:#30374f; border-bottom:1px solid #434c69; margin:-20px -20px 17px; padding:12px 18px; }
+    .editor-tab,.editor-tab.active { background:#434d70; border:1px solid #58648b; color:#f1f2fa; border-radius:6px; }
+    .file-icon { color:#d6b7a7; }
+    .tab-indicator { background:#acbaff; box-shadow:none; }
+    .editor-actions .btn { background:#414b6a; border-color:#5e6886; color:#e8ebfb; }
+    .editor-container { background:#1e2436; border-color:#454e67; border-radius:8px; }
+    .line-numbers { background:#252c40; border-right:1px solid #3b455e; color:#8791ad; }
+    #code-text { color:#dce4fa; }
+    #code-text::placeholder { color:#929bb4; opacity:1; }
+    .editor-card #render-code-btn { background:#d4dcff; color:#273763; border-color:#d4dcff; }
+    .editor-card #render-code-btn:hover:not(:disabled) { background:#edf0ff; color:#273763; border-color:#edf0ff; box-shadow:none; }
+    .terminal-card { height:158px; background:#fff; }
+    .terminal-header { margin-bottom:12px; }
+    .terminal-output { background:#f7f6f3; border-color:#e6e3dd; color:#4e556a; box-shadow:none; }
+    .terminal-output .system-msg { color:#636c80; }
+    .terminal-output .success-msg { color:#39775b; text-shadow:none; }
+    .terminal-output .error-msg { color:#b95160; text-shadow:none; }
+    .copilot-card { background:#fff9f4; border-color:#eadbcd; }
+    .copilot-card .panel-title i { color:#bb795f; }
+    .copilot-card #revision-request { background:#fffdfb; border-color:#e9dbce; height:64px; }
+    .btn { border-radius:7px; }
+    .btn-primary { color:#fff; box-shadow:none; }
+    .btn-primary:hover:not(:disabled) { color:#fff; box-shadow:0 4px 12px rgba(68,85,165,.18); }
+    .btn-secondary { background:#f6f6f3; border-color:#dcddd9; color:#495267; }
+    .btn-secondary:hover:not(:disabled) { background:#ecedfa; border-color:#b4bee2; color:#364a98; }
+    .btn-accent { box-shadow:none; }
+    .daw-footer { flex-shrink:0; height:86px; background:#262b42; border-top:1px solid #3c435f; box-shadow:none; padding:0 30px; gap:22px; }
+    .footer-left { width:220px; flex-shrink:0; }
+    .btn-play { border-radius:10px; background:#b9c6ff; color:#202c55; box-shadow:none; flex-shrink:0; }
+    .btn-play:hover:not(:disabled) { background:#e0e6ff; color:#202c55; box-shadow:none; }
+    .monitor-label { color:#a5afd3; letter-spacing:1px; }
+    .monitor-status { color:#f0f2fc; font-size:12px; }
+    .waveform-container { max-width:none; background:#1d2336; border-color:#464e6b; border-radius:7px; box-shadow:none; }
+    .footer-right { width:auto; flex-shrink:0; }
+    .footer-right .btn-secondary { background:#343c58; border-color:#515b7b; color:#f0f2fc; }
+    .footer-right .btn-secondary:hover:not(:disabled) { background:#465174; border-color:#7989ba; color:#fff; }
+    #download-format { width:auto; background:#343c58 !important; border-color:#515b7b !important; color:#f0f2fc !important; }
+    @media(max-width:1100px) {
+      .daw-workspace { grid-template-columns:minmax(315px,35%) minmax(0,1fr); }
+      .workspace-column { padding:17px; }
+      .editor-column { padding:17px; }
+      .footer-left { width:190px; }
+      .daw-footer { gap:14px; padding:0 18px; }
+    }
+    @media(max-width:780px) {
+      body { height:auto; overflow:auto; }
+      .daw-container { height:auto; min-height:100vh; }
+      .daw-workspace { display:flex; flex-direction:column; height:auto; overflow:visible; }
+      .workspace-column { height:auto; overflow:visible; padding:18px; }
+      .controls-column { border-right:0; border-bottom:1px solid #dcd9d1; }
+      .editor-card { height:55vh; min-height:410px; flex:none; }
+      .daw-footer { height:auto; min-height:150px; padding:16px 18px; flex-wrap:wrap; }
+      .footer-left { width:auto; flex:1; }
+      .waveform-container { order:3; flex:0 0 100%; }
+      .footer-right { width:auto; }
+    }
+    @media(max-width:480px) {
+      .daw-header { padding:0 14px; height:64px; }
+      .logo-pulse { width:33px; height:33px; }
+      .logo-area { gap:8px; }
+      .brand-title { font-size:16px; }
+      .brand-sub { font-size:9px; margin-left:3px; padding-left:6px; letter-spacing:1px; }
+      .status-container { padding:6px 7px; }
+      .system-status { font-size:9px; gap:5px; }
+      .workspace-column { padding:13px; gap:13px; }
+      .daw-panel { padding:16px; }
+      .editor-header-bar { margin:-16px -16px 15px; }
+      .copilot-actions { flex-wrap:wrap; }
+      .copilot-actions button { flex-basis:100%; }
+      .footer-right { gap:6px !important; }
+      .footer-right .btn { padding:9px 11px; }
+      #download-format { padding:0 7px !important; }
+    }
+  </style>
 </head>
 <body>
-    <div class=\"daw-container\">
+  <div class="daw-container">
+    <header class="daw-header">
+      <div class="logo-area"><div class="logo-glow"></div><div class="logo-pulse"><i class="fa-solid fa-compact-disc logo-icon"></i></div><span class="brand-title">SESI <span class="brand-accent">Music</span> <span class="brand-sub">Studio</span></span></div>
+      <div class="status-container"><div class="system-status"><span class="status-lamp"></span><span id="status-text">DAW Engine Idle</span></div></div>
+    </header>
+    <main class="daw-workspace">
+      <section class="workspace-column controls-column">
+        <div class="daw-panel composer-card">
+          <div class="panel-header"><h3 class="panel-title"><i class="fa-solid fa-wand-magic-sparkles"></i> COMPOSE</h3><span class="badge glow-cyan">Assistant</span></div>
+          <div class="prompt-box-wrapper"><textarea id="prompt-input" placeholder="Describe a musical idea... (e.g. A melancholic piano ballad with warm ambient strings and a slow groove...)"></textarea><button id="generate-btn" class="btn btn-primary"><span class="btn-text"><i class="fa-solid fa-music"></i> Compose Track</span><span class="btn-loader hidden"><i class="fa-solid fa-circle-notch fa-spin"></i> Rendering...</span></button></div>
+          <div class="ideas-selector"><span class="ideas-label">Style Presets:</span><div class="ideas-tags"><button class="idea-btn" data-preset="second_love"><i class="fa-solid fa-heart"></i> Ballad</button><button class="idea-btn" data-preset="stadium_anthem"><i class="fa-solid fa-guitar"></i> Rock</button><button class="idea-btn" data-preset="vaporwave"><i class="fa-solid fa-cloud-moon"></i> Chill</button><button class="idea-btn" data-preset="ceremonious_march"><i class="fa-solid fa-flag"></i> March</button><button class="idea-btn" data-preset="disco_song"><i class="fa-solid fa-compact-disc"></i> Disco</button><button class="idea-btn" data-preset="mpc"><i class="fa-solid fa-compact-disc"></i> MPC</button></div></div>
+        </div>
+        <div class="daw-panel settings-card">
+          <h3 class="panel-title"><i class="fa-solid fa-gears"></i> DAW SETTINGS</h3>
+          <div class="settings-grid">
+            <div class="settings-item"><div class="settings-label-row"><label>Tempo</label><span class="range-val" id="tempo-val">120</span></div><div class="range-control"><span class="control-icon"><i class="fa-solid fa-gauge-simple-high"></i></span><input type="range" id="config-tempo" min="60" max="200" value="120"><span class="unit">BPM</span></div></div>
+            <div class="settings-item"><div class="settings-label-row"><label>Swing</label><span class="range-val" id="swing-val">0.0</span></div><div class="range-control"><span class="control-icon"><i class="fa-solid fa-shuffle"></i></span><input type="range" id="config-swing" min="0" max="1" step="0.05" value="0"><span class="unit">%</span></div></div>
+            <div class="settings-row"><div class="settings-item half"><label for="config-key"><i class="fa-solid fa-music"></i> Key</label><select id="config-key"><option value="">Auto-detect</option></select></div><div class="settings-item half"><label for="config-structure"><i class="fa-solid fa-sitemap"></i> Structure</label><select id="config-structure"><option value="">Auto-detect</option></select></div></div>
+            <div class="settings-row"><div class="settings-item half"><label for="config-genre"><i class="fa-solid fa-tags"></i> Genre</label><select id="config-genre"><option value="">Auto-detect</option></select></div><div class="settings-item half"><label for="config-mood"><i class="fa-solid fa-face-smile"></i> Mood</label><select id="config-mood"><option value="">Auto-detect</option></select></div></div>
+          </div>
+          <button id="save-config-btn" class="btn btn-secondary full-width-btn" style="margin-top:15px;"><i class="fa-solid fa-floppy-disk"></i> Save DAW Configuration</button>
+        </div>
+        <div class="daw-panel mixer-card"><h3 class="panel-title"><i class="fa-solid fa-mixer"></i> INSTRUMENT MIXER</h3><div class="mixer-rack" id="mixer-rack">
+          <div class="mixer-channel" data-channel="drums"><div class="vu-meter"><div class="vu-bar-fill"></div></div><div class="channel-info"><span class="channel-num">CH 1</span><span class="channel-name">DRUMS</span></div><div class="channel-controls"><button class="mute-btn" title="Mute">MUTE</button><div class="fader-control"><input type="range" class="channel-vol" min="0" max="1.5" step="0.05" value="1.0" title="Volume"></div><div class="pan-control"><span class="pan-label">PAN</span><input type="range" class="channel-pan" min="-1" max="1" step="0.1" value="0.0" title="Pan"></div></div></div>
+          <div class="mixer-channel" data-channel="bass"><div class="vu-meter"><div class="vu-bar-fill"></div></div><div class="channel-info"><span class="channel-num">CH 2</span><span class="channel-name">BASS</span></div><div class="channel-controls"><button class="mute-btn" title="Mute">MUTE</button><div class="fader-control"><input type="range" class="channel-vol" min="0" max="1.5" step="0.05" value="1.0" title="Volume"></div><div class="pan-control"><span class="pan-label">PAN</span><input type="range" class="channel-pan" min="-1" max="1" step="0.1" value="0.0" title="Pan"></div><select class="channel-inst" title="Instrument"><option value="Synth Lead">Synth Bass</option><option value="Piano">Acoustic Bass</option><option value="Guitar">Electric Bass</option></select></div></div>
+          <div class="mixer-channel" data-channel="chords"><div class="vu-meter"><div class="vu-bar-fill"></div></div><div class="channel-info"><span class="channel-num">CH 3</span><span class="channel-name">CHORDS</span></div><div class="channel-controls"><button class="mute-btn" title="Mute">MUTE</button><div class="fader-control"><input type="range" class="channel-vol" min="0" max="1.5" step="0.05" value="1.0" title="Volume"></div><div class="pan-control"><span class="pan-label">PAN</span><input type="range" class="channel-pan" min="-1" max="1" step="0.1" value="0.0" title="Pan"></div><select class="channel-inst" title="Instrument"><option value="Synth Pad">Synth Pad</option><option value="Piano">Grand Piano</option><option value="Organ">Jazz Organ</option></select></div></div>
+          <div class="mixer-channel" data-channel="lead"><div class="vu-meter"><div class="vu-bar-fill"></div></div><div class="channel-info"><span class="channel-num">CH 4</span><span class="channel-name">LEAD</span></div><div class="channel-controls"><button class="mute-btn" title="Mute">MUTE</button><div class="fader-control"><input type="range" class="channel-vol" min="0" max="1.5" step="0.05" value="1.0" title="Volume"></div><div class="pan-control"><span class="pan-label">PAN</span><input type="range" class="channel-pan" min="-1" max="1" step="0.1" value="0.0" title="Pan"></div><select class="channel-inst" title="Instrument"><option value="Synth Lead">Synth Lead</option><option value="Guitar">Electric Guitar</option><option value="Piano">Grand Piano</option></select></div></div>
+          <div class="mixer-channel" data-channel="melody"><div class="vu-meter"><div class="vu-bar-fill"></div></div><div class="channel-info"><span class="channel-num">CH 5</span><span class="channel-name">MELODY</span></div><div class="channel-controls"><button class="mute-btn" title="Mute">MUTE</button><div class="fader-control"><input type="range" class="channel-vol" min="0" max="1.5" step="0.05" value="1.0" title="Volume"></div><div class="pan-control"><span class="pan-label">PAN</span><input type="range" class="channel-pan" min="-1" max="1" step="0.1" value="0.0" title="Pan"></div><select class="channel-inst" title="Instrument"><option value="Strings">Orchestral Strings</option><option value="Piano">Piano</option><option value="Organ">Jazz Organ</option></select></div></div>
+        </div></div>
+        <div class="daw-panel directives-card"><h3 class="panel-title"><i class="fa-solid fa-pen-fancy"></i> DIRECTIVES</h3><textarea id="config-notes" placeholder="e.g. Keep kick drums punching hard, high strings swelling in chorus, slow fadeout..."></textarea></div>
+      </section>
+      <section class="workspace-column editor-column">
+        <div class="daw-panel editor-card"><div class="editor-header-bar"><div class="editor-tabs"><div class="editor-tab active"><i class="fa-solid fa-file-waveform file-icon"></i><span>composition.sesi</span><span class="tab-indicator"></span></div></div><div class="editor-actions"><button id="copy-btn" class="btn btn-secondary btn-icon-small" title="Copy Sesi Code"><i class="fa-solid fa-copy"></i></button></div></div><div class="editor-container"><div class="line-numbers" id="line-numbers"><span>1</span></div><textarea id="code-text" spellcheck="false" placeholder="# Write or generate Sesi music orchestration code..."></textarea></div><button id="render-code-btn" class="btn btn-accent full-width-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Compile &amp; Render Track</button></div>
+        <div class="daw-panel terminal-card"><div class="terminal-header"><h3 class="panel-title"><i class="fa-solid fa-terminal"></i> TERMINAL</h3><button id="clear-terminal" class="btn btn-icon" title="Clear"><i class="fa-solid fa-trash-can"></i></button></div><div class="terminal-output" id="terminal-output"><span class="system-msg">[System] Sesi compiler ready. Waiting for render event...</span></div></div>
+        <div class="daw-panel copilot-card"><div class="panel-header"><h3 class="panel-title"><i class="fa-solid fa-robot"></i> MUSIC STUDIO ASSISTANT</h3><span class="badge glow-purple"> Sesi Music Help</span></div><div class="copilot-input-wrapper"><textarea id="revision-request" placeholder="Ask Sesi Music to change the song (e.g. \'Make the tempo faster\', \'Add a guitar solo\', \'Change lead to strings\')..."></textarea><div class="copilot-actions"><button id="revise-btn" class="btn btn-secondary"><i class="fa-solid fa-pen-nib"></i> Apply Revisions</button><button id="regenerate-btn" class="btn btn-secondary"><i class="fa-solid fa-rotate-left"></i> Regenerate Song</button></div></div></div>
+      </section>
+    </main>
+    <footer class="daw-footer"><div class="footer-left"><button id="play-pause-btn" class="btn-play" disabled><i class="fa-solid fa-play"></i></button><div class="monitor-info"><span class="monitor-label">STUDIO MONITOR</span><span class="monitor-status" id="monitor-status">No Audio Rendered</span></div></div><div class="waveform-container"><canvas id="waveform-visualizer"></canvas><audio id="audio-player" style="display:none;"></audio></div><div class="footer-right" style="display:flex;gap:8px;align-items:center;"><select id="download-format" class="btn btn-secondary" style="background:var(--bg-darker);border:1px solid var(--border-color);padding:0 12px;height:38px;color:var(--text-main);font-family:inherit;font-size:.85rem;border-radius:6px;cursor:pointer;"><option value="wav">WAV Format</option><option value="mp3">MP3 Format</option><option value="midi">MIDI Format</option></select><a id="download-audio-btn" class="btn btn-secondary" disabled><i class="fa-solid fa-download"></i> Download</a></div></footer>
+  </div>
+  <script src="studio.js"></script>
+</body>
+</html>'
+
+let archived = html("    <div class=\"daw-container\">
         <!-- Top Titlebar / Navbar -->
         <header class=\"daw-header\">
             <div class=\"logo-area\">
@@ -54,6 +253,7 @@ export let html = "<!DOCTYPE html>
                             <button class=\"idea-btn\" data-preset=\"vaporwave\"><i class=\"fa-solid fa-cloud-moon\"></i> Chill</button>
                             <button class=\"idea-btn\" data-preset=\"ceremonious_march\"><i class=\"fa-solid fa-flag\"></i> March</button>
                             <button class=\"idea-btn\" data-preset=\"disco_song\"><i class=\"fa-solid fa-compact-disc\"></i> Disco</button>
+                            <button class=\"idea-btn\" data-preset=\"mpc\"><i class=\"fa-solid fa-compact-disc\"></i> MPC</button>
                         </div>
                     </div>
                 </div>
@@ -340,6 +540,13 @@ export let html = "<!DOCTYPE html>
         </footer>
     </div>
     
-    <script src=\"studio.js\"></script>
-</body>
-</html>"
+    <script src=\"studio.js\"></script>", {
+        title: "Sesi Music Studio DAW",
+        head: '   <link rel=\"icon\" type=\"image/svg+xml\" href=\"favicon.svg\">
+    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
+    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
+    <link href=\"https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap\" rel=\"stylesheet\">
+    <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\">
+    <link rel=\"stylesheet\" href=\"style.css\">',
+        lang: "en"
+    })

@@ -1,6 +1,12 @@
 /*
   Native Sesi Music Generation Web Server
+  This server is built using Sesi's native web server capabilities.
+  It handles static file serving, audio generation, configuration management, and AI-driven music composition.
+
+  Usage:
+    npm start
 */
+allow "bin/ansi" in as TERM
 
 let Static = live("server/static_handler.sesi", "handle_static")
 let AudioService = live("server/audio_handler.sesi", "handle_audio")
@@ -8,36 +14,30 @@ let ConfigService = live("server/config_handler.sesi", "handle_config")
 let AIService = live("server/ai_handler.sesi", "handle_ai")
 
 fn handleRequest(req) {
-  print "[" req.method "]" req.path
+  TERM.badge(req.method, req.path)
   
   let res = Static(req)
-  if res != null { return res }
+  if !(res | is_null) { return res }
   
   res = AudioService(req)
-  if res != null { return res }
+  if !(res | is_null) { return res }
   
   res = ConfigService(req)
-  if res != null { return res }
+  if !(res | is_null) { return res }
   
   res = AIService(req)
-  if res != null { return res }
+  if !(res | is_null) { return res }
   
-  return {"status": 404, "body": "Not found"}
+  return {status: 404, body: "Not found"}
 }
 
 let server = listen(8080, handleRequest)
-print "🎵 Sesi Music Web Studio running on http://localhost:8080 🎵"
+TERM.box("🎵 Sesi Music Web Studio running 🎵")
 try {
-  if contains(exec("uname"), "Darwin") {
-    exec("open http://localhost:8080")
-  }
-  if contains(exec("uname"), "Windows") {
-    exec("start http://localhost:8080")
-  }
-  if contains(exec("uname"), "Linux") {
-    exec("xdg-open http://localhost:8080")
-  }
+  open("http://localhost:8080")
 } catch (e) {
-  print "Failed to open browser: " e
+  TERM.error("Failed to open browser: " + e)
+  TERM.warning("Please open http://localhost:8080 in your browser manually.")
 }
-print "Press Ctrl+C to exit."
+
+show "Press Ctrl+C anytime to stop the server...\n\n"

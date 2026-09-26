@@ -1,29 +1,21 @@
 {
   "name": "sesi-music",
-  "version": "1.0.0",
+  "version": "1.1.5",
   "description": "A music generation studio powered by Sesi",
-  "main": "node_modules/@misterscan/sesi/dist/index.js",
+  "main": "@misterscan/sesi",
   "bin": {
-    "sesi": "bin/sesi.js"
+    "sesi": "@misterscan/sesi"
   },
   "license": "MIT",
   "private": true,
   "scripts": {
-    "sesi": "node bin/sesi.js -l",
-    "start": "node bin/sesi.js -l server/main.sesi",
-    "build": "node bin/sesi.js create/frontend.sesi",
-    "eval": "node bin/sesi.js -e",
-    "help": "node bin/sesi.js -h",
-    "lint": "node bin/sesi.js bin/lint.sesi",
-    "encrypt": "node bin/sesi.js -enc",
-    "decrypt": "node bin/sesi.js -dec"
-  },
-  "dependencies": {
-    "@misterscan/sesi": "1.5.7"
-  },
-  "allowScripts": {
-    "fsevents@2.3.2": true,
-    "protobufjs@7.6.4": true,
-    "@google/genai@2.9.0": true
+    "sesi": "sesi -l",
+    "start": "sesi -l server/main.sesi",
+    "build": "sesi create/frontend.sesi",
+    "eval": "sesi -e",
+    "help": "sesi -h",
+    "lint": "sesi bin/lint.sesi",
+    "encrypt": "sesi -enc",
+    "decrypt": "sesi -dec"
   }
 }
