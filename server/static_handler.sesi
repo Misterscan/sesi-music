@@ -1,44 +1,5 @@
 allow "helpers/safe" in as Safe
-allow "bin/ansi" in as TERM
-
-let parsed_instruments = []
-try {
-  let doc = Safe.readFile("sf2/GeneralUser-GS.md")
-  let lines = split(doc, "\n")
-  let i = 0
-  while i < len(lines) {
-    let line = trim(lines[i])
-    if starts_with(line, "|") {
-      let parts = split(line, "|")
-      let j = 0
-      while j < len(parts) {
-        let part = trim(parts[j])
-        if starts_with(part, "**") && ends_with(part, "**") {
-          let name = slice(part, 2, len(part) - 2)
-          if num(name) == null && name != "Preset:" && name != "Bank:" && name != "PC:" && name != "Bank 120 or Ch.10:" && name != "version 2.0.3" && name != "revision 6" && name != "by S. Christian Collins" {
-            let found = false
-            let k = 0
-            while k < len(parsed_instruments) {
-              if parsed_instruments[k] == name { found = true }
-              k = k + 1
-            }
-            if !found {
-              push(parsed_instruments, name)
-            }
-          }
-        }
-        j = j + 1
-      }
-    }
-    i = i + 1
-  }
-} catch (err) {
-  TERM.warning("Failed to parse GeneralUser-GS.md: " + err)
-}
-
-if len(parsed_instruments) == 0 {
-  parsed_instruments = ["Grand Piano", "Tine Electric Piano", "FM Electric Piano", "Tonewheel Organ", "Nylon Guitar", "Steel Guitar", "Clean Guitar", "Distortion Guitar", "Finger Bass", "Synth Bass 1", "Violin", "Cello", "Timpani", "Trumpet", "French Horns", "Brass Section", "Alto Sax", "Tenor Sax", "Flute", "Clarinet", "Synth Pad", "Square Lead", "Saw Lead", "Warm Pad", "Steel Drums", "Standard 1 Kit"]
-}
+allow "tags" in with {tags}
 
 export fn handle_static(req) {
   if req.method == "GET" && req.path == "/" {
@@ -62,32 +23,14 @@ export fn handle_static(req) {
       return {status: 404, body: "JS file not found"}
     }
   }
-  if req.method == "GET" && (req.path == "/favicon.svg" || req.path == "/favicon.ico") {
+  if req.method == "GET" && (req.path == "/favicon.svg" || req.path == "/logo.svg") {
     try {
-      return {status: 200, headers: {"Content-Type": "image/svg+xml"}, body: Safe.readFile("static/favicon.svg")}
+      return {status: 200, headers: {"Content-Type": "image/svg+xml"}, body: Safe.readFile("static/favicon.svg" || "static/logo.svg")}
     } catch (e) {
       return {status: 200, body: ""}
     }
   }
-  if req.method == "GET" && req.path == "/logo.svg" {
-    try {
-      return {status: 200, headers: {"Content-Type": "image/svg+xml"}, body: Safe.readFile("static/logo.svg")}
-    } catch (e) {
-      return {status: 200, body: ""}
-    }
-  }
-  
-  if req.method == "GET" && req.path == "/tags" {
-    let tags = {
-      genre: ["Lo-Fi", "Synthwave", "Orchestral", "Punk", "Classical", "Dubstep", "Blues"],
-      mood: ["Happy", "Sad", "Energetic", "Melancholic", "Epic"],
-      structure: ["AABB", "ABAB", "Verse-Chorus"],
-      key: ["C", "G", "D", "A", "E", "F", "Bb", "Eb"],
-      instruments: parsed_instruments
-    }
-    return {status: 200, headers: {"Content-Type": "application/json"}, body: to_json(tags)}
-  }
-
+  if req.method == "GET" && req.path == "/tags" { return {status: 200, headers: {"Content-Type": "application/json"}, body: to_json(tags)} }
   if req.method == "GET" && req.path == "/last-generated-code" {
     try {
       return {status: 200, headers: {"Content-Type": "text/plain", "Cache-Control": "no-cache, no-store, must-revalidate"}, body: Safe.readFile(".generated_song.sesi")}
@@ -95,6 +38,5 @@ export fn handle_static(req) {
       return {status: 404, headers: {"Content-Type": "text/plain"}, body: ""}
     }
   }
-  
   return null
 }

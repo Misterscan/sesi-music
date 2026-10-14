@@ -1,0 +1,226 @@
+allow "bin/ansi" in as TERM
+allow "server/prompts" in as Prompts
+allow "helpers/safe" in as Safe
+allow "server/ai_handler" in with {clean_code}
+
+/**
+  Generates a structured music brief from user requirements and configuration options using AI language models with multi-tier fallback support.
+
+  Parameters:
+  - user: The user prompt, description, or specification object describing the intended music track.
+  - config: The musical configuration string or JSON payload detailing tempo, key, genre, and instrumentation.
+
+  Returns:
+  - A string containing the generated music brief, falls back to the user input if generation fails.
+
+  Example:
+  ```sesi
+  allow "server/prompts" in as Prompts
+  let user_input = "A calm acoustic guitar piece with soft background strings"
+  let config = "{\"tempo\": \"90\", \"genre\": \"acoustic\", \"key\": \"G Major\"}"
+  let brief = musicBrief(user_input, config)
+  show brief
+  ```
+
+  Notes:
+  - Queries `gpt-6-luna` as the primary reasoning model and falls back to `gemini-3.5-flash-lite` if the primary provider encounters an error.
+  - Constructs the initial prompt using `Prompts.get_stage1_prompt`.
+*/
+fn musicBrief(user, config) {
+    let stage1_prompt = Prompts.get_stage1_prompt(user, config)
+    let brief = ""
+    try {
+        TERM.info("Generating brief...\n")
+        brief = model("gpt-6-luna") {thinkingLevel: "medium"} {stage1_prompt}
+        TERM.success("--> Brief Generated Successfully.")
+        show brief
+        TERM.newline()
+    } catch (e) {
+        try {
+          brief = model("gemini-3.5-flash-lite") {thinkingLevel: "medium", temperature: 0.4} {stage1_prompt}
+          TERM.success("--> Brief Generated Successfully.")
+          show brief
+          TERM.newline()
+        } catch (err2) {
+          TERM.error("Stage 1 Error: " + e + err2)
+        }
+    }
+    if brief == "" { brief = user }
+    return brief
+}
+
+/**
+  Generates executable Sesi music synthesis code from a musical brief, attempts compilation up to three times with automated error repair, and saves the code to disk.
+
+  Parameters:
+  - brief: The structured music brief generated during stage 1 describing musical layers, tempo, and notes.
+  - path: The target file path string where the resulting Sesi music code is written.
+
+  Returns:
+  - An error object containing failure details (`{status: false, body: {error: string, brief: string, code: string}}`) if compilation fails across all three attempts, or a success object (`{status: true, body: {brief: string, code: string}}`) upon successful compilation.
+
+  Example:
+  ```sesi
+  let brief = "A 120 BPM upbeat synthwave track featuring square bass and arpeggiated leads."
+  let res = musicCode(brief, "synthwave.sesi")
+  if res != null && res.status == false {
+    show "Generation failed:" res.body.error
+  } else {
+    show "Song generated successfully to output.wav"
+  }
+  ```
+
+  Notes:
+  - Executes up to 3 repair cycles, supplying compilation error logs back to the repair model on subsequent attempts.
+  - Cleans AI model output via `clean_code` before saving through `Safe.writeFile`.
+  - Triggers compilation via `sesi(path, true)`, expecting audio rendering to produce `output.wav`.
+*/
+fn musicCode(brief, path) {
+    let code = ""
+    let last_error = ""
+    let success = false
+    let attempt = 0
+      
+    while attempt < 3 && success == false {
+        let attempt_num = attempt + 1
+        let current_prompt = ""
+        if attempt == 0 { current_prompt = Prompts.get_stage2_prompt(brief)
+        } else { current_prompt = Prompts.get_repair_prompt(last_error, code) }
+        
+        try {
+        if attempt == 0 {
+            try { code =  model("gpt-6-sol") {thinkingLevel: "medium", max_tokens: 8192} {current_prompt} } 
+            catch { code = model("gemini-3.7-flash") {thinkingLevel: "medium", temperature: 0.3, max_tokens: 8192} {current_prompt} }
+        } else {
+            TERM.warning("--> Attempt " + attempt_num + " Repairing code...")
+            try { code = model("gpt-6-luna") {thinkingLevel: "medium", max_tokens: 8192} {current_prompt} }
+            catch { code = model("gemini-3.5-flash-lite") {thinkingLevel: "medium", max_tokens: 8192} {current_prompt} }
+        }
+        code = clean_code(code)
+        Safe.writeFile(path, code)
+        TERM.info("--> Compiling Attempt " + attempt_num + "...")
+        sesi(path, true)
+          
+        // Sesi's render_song generates output.wav. We assume success if finished.
+        success = true
+        } catch (err) {
+        last_error = str(err)
+        TERM.error("--> Attempt " + attempt_num + " Failed: " + last_error)
+        attempt = attempt + 1
+        }
+    }
+    if success == false {
+        return {
+            status: false,
+            body: {
+                error: "Failed after 3 compilation attempts. Last error: " + last_error,
+                brief: brief,
+                code: code
+            }
+        }
+    } else {
+        return {
+            status: true,
+            body: {
+                brief: brief,
+                code: code
+            }
+        }
+    }
+}
+
+/**
+  Applies user feedback and revision instructions to an existing Sesi music script, compiles the updated code, and writes the output to disk.
+
+  Parameters:
+  - brief: The original musical brief providing track context.
+  - user: The user revision feedback or alteration instructions.
+  - code: The existing Sesi code string that needs to be revised.
+  - outPath: The output file path where the revised script will be written.
+
+  Returns:
+  - An object `{status: true, body: {brief: string, code: string}}` on successful revision and compilation, or `{status: false, body: {error: string, brief: string, code: string}}` on failure.
+
+  Example:
+  ```sesi
+  let old_code = read_file("original_track.sesi")
+  let result = reviseCode("Retro arcade theme", "Double the tempo and add heavy kick drums", old_code, "revised_track.sesi")
+  if result.status {
+    show "Revision succeeded. Code written to revised_track.sesi"
+  } else {
+    show "Revision error:" result.body.error
+  }
+  ```
+
+  Notes:
+  - Employs `gpt-5.6-terra` as the primary revision engine with fallback to `gemini-3.7-flash`.
+  - Code is sanitized using `clean_code` and immediately validated by compiling with `sesi(outPath, true)`.
+*/
+fn reviseCode(brief, user, code, outPath) {
+    let revise_prompt = Prompts.get_revision_prompt(brief, user, code)
+    TERM.info("Revising code for " + user + " with " + revise_prompt + "...")
+    try {
+    let new_code = ""
+    try { model("gpt-5.6-terra") {thinkingLevel: "low"} {revise_prompt} }
+    catch {new_code = model("gemini-3.7-flash") {thinkingLevel: "medium", temperature: 0.2} {revise_prompt} }
+    new_code = clean_code(new_code)
+    Safe.writeFile(outPath, new_code)
+    sesi(outPath, true)
+    return { status: true, body: {brief: brief, code: new_code} } }
+    catch (e) { TERM.error(e); return {status: false, body: {error: "Revision failed: " + str(e), brief: brief, code: code}}
+    }
+}
+
+/**
+  High-level music generation and revision pipeline that orchestrates brief generation, code synthesis, script compilation, and automatic retry handling.
+
+  Parameters:
+  - user: The description, genre specification, or modification prompt provided by the user.
+  - outPath: The destination file path where the generated `.sesi` script will be saved.
+  - config: Optional configuration string or JSON payload defining parameters like tempo, swing, key, and instruments (defaults to empty string `""`, which initializes standard default JSON settings).
+  - script: Optional existing Sesi script code string if performing a revision workflow (defaults to `null`).
+
+  Returns:
+  - A success confirmation string indicating the script path and generated `output.wav` file, or a retry response object if generation fails.
+
+  Example:
+  ```sesi
+  // 1. Generate a new song from scratch
+  let songResult = SesiMusic("Chill lo-fi study beat with vinyl crackle", "lofi_beat.sesi")
+  show songResult
+
+  // 2. Revise an existing song script
+  let existingScript = read_file("lofi_beat.sesi")
+  let updatedResult = SesiMusic("Make the snare louder and add a jazz chord progression", "lofi_beat_v2.sesi", "", existingScript)
+  show updatedResult
+  ```
+
+  Notes:
+  - If `config` is omitted or passed as an empty string, default JSON configuration parameters (`tempo: 120`, `swing: 0.0`) are automatically populated.
+  - Routes execution through `reviseCode` when `script` is non-null, and through `musicCode` when starting a new generation pipeline.
+  - Automatically initiates a 2-attempt retry cycle using `retry()` if an initial failure status is encountered.
+*/
+export fn SesiMusic(user, outPath, config = "", script = null) {
+  TERM.key_value("Initial prompt", user)
+  TERM.key_value("Output Path", outPath)
+  TERM.key_value("Config", config)
+  TERM.key_value("Reference script", script)
+    if config == "" {
+        config = {
+            tempo: "120",
+            swing: "0.0",
+            key: "",
+            structure: "",
+            genre: "",
+            mood: "",
+            instruments: "",
+            notes: ""
+        } | to_json
+    }
+    let req = musicBrief(user, config)
+    let code = ""
+    let revise = ""
+    if script != null { revise = reviseCode(req, user, script, outPath) } else { code = musicCode(req, outPath) }
+    if script != null && revise.status == false { revise = retry(musicCode(req, outPath), { max_retries: 2 }) } else { return "Script saved to " + outPath + " and song generated to output.wav" }
+    if code.status == false { code = retry(musicCode(req, outPath), { max_retries: 2 }) } else { return "Script saved to " + outPath + " and song generated to output.wav" }
+}

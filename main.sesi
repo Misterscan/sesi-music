@@ -1,0 +1,21 @@
+allow "bin/ansi" in as TERM
+allow "local/cli" in with {SesiMusic}
+
+TERM.header("Sesi Music CLI")
+TERM.newline()
+let dir = "songs/"
+let user = args[0] || input("What would you like to make today?: ")
+if user == "" { user = "Chill lo-fi study beat with vinyl crackle" }
+let file = dir + (args[1] || input("Output filename?: "))
+if file == "songs/" { file = "songs/lofi_beat.sesi" }
+let config = args[2] || input("Configuration? (defaults will be used if left blank): ") | to_lower | trim
+if config == "y" || config == "yes" {
+    TERM.info("Reading sesi_music.db...")
+    config = read_file("sesi_music.db")
+}
+if config == "n" || config == "no" { config = "" } else { config = config }
+
+let reviseScript = read_file(args[4]) || null
+
+let songResult = SesiMusic(user, file, config, reviseScript)
+show songResult

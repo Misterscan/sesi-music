@@ -141,7 +141,7 @@ allow 'std/theory' in as Music // <-- Use double quotes for strings, NOT single 
 allow 'std/audio' in as Audio
 allow 'lib/presets' in as Presets
 3. Define BPM and calculate BAR_MS: let BPM = <val>; let BAR_MS = Music.bar(1.0, BPM)
-4. Use Presets.sf2 for instruments: let inst = Audio.sf2(\"sf2/GeneralUser-GS.sf2\", {\"instrument\": <GM_ID>})
+4. Use Presets.sf2 for instruments: let inst = Audio.sf2(\"sf2/GeneralUser-GS.sf2\", {instrument: <GM_ID>})
 5. Refer to the GM instrument list provided to find the correct GM_ID integers.
 6. For drums, you MUST use the provided preset functions: Presets.kick, Presets.snare, Presets.hat, Presets.clap.
 7. Use Presets.step_sequence(pattern, instrument_fn, BPM) to create drum beats easily.

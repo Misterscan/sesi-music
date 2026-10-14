@@ -1,0 +1,146 @@
+allow "helpers/safe" in as Safe
+allow "bin/ansi" in as TERM
+
+let parsed_instruments = []
+try {
+  let doc = Safe.readFile("sf2/GeneralUser-GS.md")
+  let lines = split(doc, "\n")
+  let i = 0
+  while i < len(lines) {
+    let line = trim(lines[i])
+    if starts_with(line, "|") {
+      let parts = split(line, "|")
+      let j = 0
+      while j < len(parts) {
+        let part = trim(parts[j])
+        if starts_with(part, "**") && ends_with(part, "**") {
+          let name = slice(part, 2, len(part) - 2)
+          if num(name) == null && name != "Preset:" && name != "Bank:" && name != "PC:" && name != "Bank 120 or Ch.10:" && name != "version 2.0.3" && name != "revision 6" && name != "by S. Christian Collins" {
+            let found = false
+            let k = 0
+            while k < len(parsed_instruments) {
+              if parsed_instruments[k] == name { found = true }
+              k = k + 1
+            }
+            if !found {
+              push(parsed_instruments, name)
+            }
+          }
+        }
+        j = j + 1
+      }
+    }
+    i = i + 1
+  }
+} catch (err) { TERM.warning("Failed to parse GeneralUser-GS.md: " + err) }
+
+if len(parsed_instruments) == 0 {
+  parsed_instruments = ["Grand Piano", "Tine Electric Piano", "FM Electric Piano", "Tonewheel Organ", "Nylon Guitar", "Steel Guitar", "Clean Guitar", "Distortion Guitar", "Finger Bass", "Synth Bass 1", "Violin", "Cello", "Timpani", "Trumpet", "French Horns", "Brass Section", "Alto Sax", "Tenor Sax", "Flute", "Clarinet", "Synth Pad", "Square Lead", "Saw Lead", "Warm Pad", "Steel Drums", "Standard 1 Kit"]
+}
+
+export let tags = {
+      genre: [
+        "Pop",
+        "Rock",
+        "Hip-Hop",
+        "Jazz",
+        "Classical",
+        "Electronic",
+        "Country",
+        "R&B",
+        "Folk",
+        "Reggae",
+        "Blues",
+        "Punk",
+        "Metal",
+        "Indie",
+        "Soul",
+        "Disco",
+        "Techno",
+        "Ambient",
+        "World",
+        "Funk",
+        "Salsa",
+        "Dance",
+        "Alternative",
+        "Rap",
+        "Gospel",
+        "Chillout",
+        "Lo-fi",
+        "Experimental",
+        "Soundtrack",
+        "Dubstep"
+      ],
+      mood: [
+        "Happy",
+        "Sad",
+        "Energetic",
+        "Calm",
+        "Excited",
+        "Nostalgic",
+        "Romantic",
+        "Mysterious",
+        "Serious",
+        "Playful",
+        "Tense",
+        "Uplifting",
+        "Melancholic",
+        "Dreamy",
+        "Aggressive",
+        "Hopeful",
+        "Relaxed",
+        "Intense",
+        "Soothing",
+        "Festive"
+      ],
+      structure: [
+        "Verse-Chorus",
+        "Verse-Chorus-Bridge",
+        "AABA",
+        "Strophic",
+        "Through-Composed",
+        "Call and Response",
+        "Refrain",
+        "Verse-Chorus-Verse",
+        "Intro-Verse-Chorus-Bridge-Outro",
+        "Verse-Chorus-Verse-Chorus-Bridge-Outro",
+        "Simple Binary",
+        "Simple Ternary",
+        "Rondo",
+        "Sonata Form",
+        "Theme and Variations",
+        "Free Form",
+        "Loop-Based",
+        "Minimalist",
+        "Narrative",
+        "Montage"
+      ],
+      key: [
+        "C major",
+        "C-sharp major",
+        "D-flat major",
+        "D major",
+        "E-flat major",
+        "E major",
+        "F major",
+        "F-sharp major",
+        "G major",
+        "A-flat major",
+        "A major",
+        "B-flat major",
+        "B major",
+        "C minor",
+        "C-sharp minor",
+        "D minor",
+        "E-flat minor",
+        "E minor",
+        "F minor",
+        "F-sharp minor",
+        "G minor",
+        "G-sharp minor",
+        "A minor",
+        "B-flat minor",
+        "B minor"
+      ],
+      instruments: parsed_instruments
+    }

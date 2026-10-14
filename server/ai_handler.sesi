@@ -28,41 +28,38 @@ export fn handle_ai(req) {
           return {
             status: 200,
             headers: {"Content-Type": "application/json"},
-            body: to_json({
-              brief: brief,
-              code: code
-            })
+            body: to_json({ brief: brief, code: code })
           }
         } catch (err) {
           show "Error running prepackaged:" err
           return {
             status: 500,
             headers: {"Content-Type": "application/json"},
-            body: to_json({
-              error: "Failed to compile prepackaged script: " + str(err)
-            })
+            body: to_json({ error: "Failed to compile prepackaged script: " + str(err) })
           }
         }
       }
       
       show "==========================================="
       show "Stage 1: Generating Musical Brief..."
-      
       let stage1_prompt = Prompts.get_stage1_prompt(prompt_text, config_text)
-      
       let brief = ""
-      try {
-        brief = model("gemini-3.5-flash-lite") {thinkingLevel: "medium", temperature: 0.4} {stage1_prompt}
-        show "--> Brief Generated Successfully."
-        show brief
-        show ""
-      } catch (err) {
-        show "Stage 1 Error:" err
-        return {status: 500, headers: {"Content-Type": "application/json"}, body: to_json({error: "Failed to generate brief: " + str(err)})}
+      let errMsg = ""
+
+      try { brief = model("gpt-6-luna") {thinkingLevel: "medium"} {stage1_prompt} }
+      catch (e) { errMsg = e.message
+        try {
+          brief = model("gemini-3.5-flash-lite") {thinkingLevel: "medium"} {stage1_prompt}
+          show "--> Brief Generated Successfully."
+          show brief
+          show ""
+        } catch (err2) {
+          show "Stage 1 Error:" e err2
+          return {status: 500, headers: {"Content-Type": "application/json"}, body: to_json({error: "Failed to generate brief: " + str(e + err2)})}
+        }
       }
       
       show "Stage 2: Synthesizing Sesi Music Code..."
-      
       let code = ""
       let last_error = ""
       let success = false
@@ -71,23 +68,21 @@ export fn handle_ai(req) {
       while attempt < 3 && success == false {
         let attempt_num = attempt + 1
         let current_prompt = ""
-        if attempt == 0 {
-          current_prompt = Prompts.get_stage2_prompt(brief)
-        } else {
-          current_prompt = Prompts.get_repair_prompt(last_error, code)
-        }
+        if attempt == 0 { current_prompt = Prompts.get_stage2_prompt(brief)
+        } else { current_prompt = Prompts.get_repair_prompt(last_error, code) }
         
         try {
           if attempt == 0 {
-            code = model("gemini-3.7-flash") {thinkingLevel: "medium", temperature: 0.3, max_tokens: 8192} {current_prompt}
+            try { code =  model("gpt-6.1-sol") {thinkingLevel: "medium", max_tokens: 8192} {current_prompt} } 
+            catch { code = model("gemini-4-argon") {thinkingLevel: "medium", max_tokens: 8192} {current_prompt} }
           } else {
             show "--> Attempt" attempt_num "Repairing code..."
-            code = model("gemini-3.5-flash-lite") {thinkingLevel: "medium", max_tokens: 8192} {current_prompt}
+            try { code = model("gpt-6.1-sol") {thinkingLevel: "medium", max_tokens: 8192} {current_prompt} }
+            catch { code = model("gemini-3.8-flash") {thinkingLevel: "medium", max_tokens: 8192} {current_prompt} }
           }
           
           code = clean_code(code)
           Safe.writeFile(generated_song_path, code)
-          
           show "--> Compiling Attempt" attempt_num "..."
           sesi(generated_song_path, true)
           
@@ -138,11 +133,12 @@ export fn handle_ai(req) {
     let original_code = payload.code
     let brief = payload.brief
     let req_text = payload.request
-    
     let revise_prompt = Prompts.get_revision_prompt(brief, req_text, original_code)
-    
+
     try {
-      let new_code = model("gemini-3.7-flash") {thinkingLevel: "medium", temperature: 0.2} {revise_prompt}
+      let new_code = ""
+      try { new_code = model("gpt-6.1-sol") {thinkingLevel: "low"} {revise_prompt} }
+      catch {new_code = model("gemini-4-argon") {thinkingLevel: "low"} {revise_prompt} }
       new_code = clean_code(new_code)
       Safe.writeFile(generated_song_path, new_code)
       sesi(generated_song_path, true)
