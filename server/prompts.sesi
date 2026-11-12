@@ -49,27 +49,27 @@ try {
 
 export let PREPACKAGED_EXAMPLES = {
   "A swung MPC track with minor synth bass and a changing arrangement.": {
-    brief: "A native MPC arrangement: an opening atmosphere develops into a verse, lift, and hook, drops to a half-time bridge, then returns for a final hook and resolution. Synthesized bass and lead one-shots sit with native drums, fills, evolving dynamics, and MPC sampler color.",
+    brief: "Title: Midnight Circuit\n\nA native MPC arrangement: an opening atmosphere develops into a verse, lift, and hook, drops to a half-time bridge, then returns for a final hook and resolution. Synthesized bass and lead one-shots sit with native drums, fills, evolving dynamics, and MPC sampler color.",
     code: mpc_code
   },
   "A beautiful song that captures the feeling of falling in love for the second time.": {
-    brief: "### Style/Genre\nEmotional Ballad / Soft Pop\n\n### Section Plan\n- **Intro**: 4 bars. Ambient piano and strings.\n- **Verse**: 8 bars. Add acoustic guitar arpeggios.\n- **Pre-Chorus**: 4 bars. Tension build, classical resolution.\n- **Chorus**: 16 bars. Soaring lead synth melody, full drums.\n- **Outro**: 4 bars. Soft acoustic guitar fade out.\n*Total 36 bars*",
+    brief: "Title: Second Love\n\n### Style/Genre\nEmotional Ballad / Soft Pop\n\n### Section Plan\n- **Intro**: 4 bars. Ambient piano and strings.\n- **Verse**: 8 bars. Add acoustic guitar arpeggios.\n- **Pre-Chorus**: 4 bars. Tension build, classical resolution.\n- **Chorus**: 16 bars. Soaring lead synth melody, full drums.\n- **Outro**: 4 bars. Soft acoustic guitar fade out.\n*Total 36 bars*",
     code: second_love_code
   },
   "An epic, high-energy entrance theme for a championship football game.": {
-    brief: "### Style/Genre\nEpic Stadium Rock / Brass Anthem\n\n### Section Plan\n- **Intro**: 4 bars. Heavy stadium drums and claps.\n- **Verse 1**: 8 bars. Add finger bass and soft brass stabs.\n- **Chorus**: 8 bars. Soaring brass melody and loud drums.\n- **Outro**: 4 bars. Heavy outro groove ending on final hit.\n*Total 24 bars*",
+    brief: "Title: Championship Entrance\n\n### Style/Genre\nEpic Stadium Rock / Brass Anthem\n\n### Section Plan\n- **Intro**: 4 bars. Heavy stadium drums and claps.\n- **Verse 1**: 8 bars. Add finger bass and soft brass stabs.\n- **Chorus**: 8 bars. Soaring brass melody and loud drums.\n- **Outro**: 4 bars. Heavy outro groove ending on final hit.\n*Total 24 bars*",
     code: stadium_anthem_code
   },
   "A dreamy vaporwave track with a cassette vibe, dynamic neon cover art, and a saxophone lead.": {
-    brief: "### Style/Genre\nVaporwave / Dream Pop / Chillwave\n\n### Section Plan\n- **Intro**: 4 bars. Warm synth pad playing Fmaj7-Gmaj7-Em7-Am7 chords with 80 BPM drums.\n- **Verse**: 4 bars. Add glassy Tine EP arpeggios and slow synth bass.\n- **Chorus**: 8 bars. Tenor Saxophone plays a nostalgic, sweeping melody.\n- **Outro**: 4 bars. Saxophone rests, chords and keys fade out under drum groove.\n*Total 20 bars*",
+    brief: "Title: Neon Cassette Dreams\n\n### Style/Genre\nVaporwave / Dream Pop / Chillwave\n\n### Section Plan\n- **Intro**: 4 bars. Warm synth pad playing Fmaj7-Gmaj7-Em7-Am7 chords with 80 BPM drums.\n- **Verse**: 4 bars. Add glassy Tine EP arpeggios and slow synth bass.\n- **Chorus**: 8 bars. Tenor Saxophone plays a nostalgic, sweeping melody.\n- **Outro**: 4 bars. Saxophone rests, chords and keys fade out under drum groove.\n*Total 20 bars*",
     code: vaporwave_code
   },
   "A stately processional fanfare and march featuring trumpets, French horns, trombones, strings, and timpani.": {
-    brief: "### Style/Genre\nStately Processional / Ceremonial Fanfare\n\n### Section Plan\n- **The Fanfare Call**: 4 bars. Bright Trumpet call in C Major with French Horn harmony and dramatic Timpani strikes.\n- **Processional Theme**: 8 bars. Majestic arpeggiated string outline and trombone stately bassline under trumpet main melody.\n- **Grand Climax**: 4 bars. Tutti call-and-response resolving to a final grand accent strike.\n*Total 16 bars*",
+    brief: "Title: Grand Procession\n\n### Style/Genre\nStately Processional / Ceremonial Fanfare\n\n### Section Plan\n- **The Fanfare Call**: 4 bars. Bright Trumpet call in C Major with French Horn harmony and dramatic Timpani strikes.\n- **Processional Theme**: 8 bars. Majestic arpeggiated string outline and trombone stately bassline under trumpet main melody.\n- **Grand Climax**: 4 bars. Tutti call-and-response resolving to a final grand accent strike.\n*Total 16 bars*",
     code: ceremonious_march_code
   },
   "A classic 4-bar disco groove featuring electric bass, Rhodes stabs, synth lead, and handclaps.": {
-    brief: "### Style/Genre\nSoundFont Disco / Dance / Groove\n\n### Section Plan\n- **Groove**: 4 bars. Four-on-the-floor kick drum, hi-hats on offbeats, stereo handclaps/snare on beats 2 & 4, electric bass, Rhodes stabs, and synth lead melody.\n*Total 4 bars*",
+    brief: "Title: Disco Groove\n\n### Style/Genre\nSoundFont Disco / Dance / Groove\n\n### Section Plan\n- **Groove**: 4 bars. Four-on-the-floor kick drum, hi-hats on offbeats, stereo handclaps/snare on beats 2 & 4, electric bass, Rhodes stabs, and synth lead melody.\n*Total 4 bars*",
     code: disco_song_code
   }
 }
@@ -144,18 +144,19 @@ allow 'lib/presets' in as Presets
 4. Use Presets.sf2 for instruments: let inst = Audio.sf2(\"sf2/GeneralUser-GS.sf2\", {instrument: <GM_ID>})
 5. Refer to the GM instrument list provided to find the correct GM_ID integers.
 6. For drums, you MUST use the provided preset functions: Presets.kick, Presets.snare, Presets.hat, Presets.clap.
-7. Use Presets.step_sequence(pattern, instrument_fn, BPM) to create drum beats easily.
-8. Structure your songs logically! Build tracks using arrays and push(). Use loops or arrays to arrange sections.
-9. Keep the full arrangement aligned to the requested total length conceptually.
-10. Combine tracks: let all_tracks = [track1, track2, ...]
-11. Output the file:
+7. After loading your sound samples in a try/catch, clean up the generated sounds with a finally block with trash(\"sample.wav\", true).
+8. Use Presets.step_sequence(pattern, instrument_fn, BPM) to create drum beats easily.
+9. Structure your songs logically! Build tracks using arrays and push(). Use loops or arrays to arrange sections.
+10. Keep the full arrangement aligned to the requested total length conceptually.
+11. Combine tracks: let all_tracks = [track1, track2, ...]
+12. Output the file:
 try {
   Presets.render_song(\"output.wav\", all_tracks) // <-- DO NOT CHANGE THIS FILENAME OR EXTENSION!
 } catch (err) {
   show err
 }
-12. NEVER use the `+` operator for arrays, use `push()`.
-13. After render_song, ALWAYS export MIDI by calling: Audio.midi(\"output.mid\", all_tracks)
+13. NEVER use the `+` operator for arrays, use `push()`.
+14. After render_song, ALWAYS export MIDI by calling: Audio.midi(\"output.mid\", all_tracks)
 
 ### PRESETS API CODE DEFINITION (Shows available methods on Presets module) ###
 " presets_code "

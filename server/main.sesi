@@ -27,7 +27,7 @@ fn handleRequest(req) {
   
   res = AIService(req)
   if !(res | is_null) { return res }
-  
+
   return {status: 404, body: "Not found"}
 }
 

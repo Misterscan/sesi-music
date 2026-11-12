@@ -119,7 +119,9 @@ export let page = '<!DOCTYPE html>
     .btn-secondary:hover:not(:disabled) { background:#ecedfa; border-color:#b4bee2; color:#364a98; }
     .btn-accent { box-shadow:none; }
     .daw-footer { flex-shrink:0; height:86px; background:#262b42; border-top:1px solid #3c435f; box-shadow:none; padding:0 30px; gap:22px; }
-    .footer-left { width:220px; flex-shrink:0; }
+    .footer-left { width:270px; flex-shrink:0; }
+    .monitor-info { min-width:0; }
+    .monitor-title { color:#fff; font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px; }
     .btn-play { border-radius:10px; background:#b9c6ff; color:#202c55; box-shadow:none; flex-shrink:0; }
     .btn-play:hover:not(:disabled) { background:#e0e6ff; color:#202c55; box-shadow:none; }
     .monitor-label { color:#a5afd3; letter-spacing:1px; }
@@ -133,7 +135,8 @@ export let page = '<!DOCTYPE html>
       .daw-workspace { grid-template-columns:minmax(315px,35%) minmax(0,1fr); }
       .workspace-column { padding:17px; }
       .editor-column { padding:17px; }
-      .footer-left { width:190px; }
+      .footer-left { width:220px; }
+      .monitor-title { max-width:105px; }
       .daw-footer { gap:14px; padding:0 18px; }
     }
     @media(max-width:780px) {
@@ -145,6 +148,7 @@ export let page = '<!DOCTYPE html>
       .editor-card { height:55vh; min-height:410px; flex:none; }
       .daw-footer { height:auto; min-height:150px; padding:16px 18px; flex-wrap:wrap; }
       .footer-left { width:auto; flex:1; }
+      .monitor-title { max-width:180px; }
       .waveform-container { order:3; flex:0 0 100%; }
       .footer-right { width:auto; }
     }
@@ -205,7 +209,7 @@ export let page = '<!DOCTYPE html>
         <div class="daw-panel copilot-card"><div class="panel-header"><h3 class="panel-title"><i class="fa-solid fa-robot"></i> MUSIC STUDIO ASSISTANT</h3><span class="badge glow-purple"> Sesi Music Help</span></div><div class="copilot-input-wrapper"><textarea id="revision-request" placeholder="Ask Sesi Music to change the song (e.g. \'Make the tempo faster\', \'Add a guitar solo\', \'Change lead to strings\')..."></textarea><div class="copilot-actions"><button id="revise-btn" class="btn btn-secondary"><i class="fa-solid fa-pen-nib"></i> Apply Revisions</button><button id="regenerate-btn" class="btn btn-secondary"><i class="fa-solid fa-rotate-left"></i> Regenerate Song</button></div></div></div>
       </section>
     </main>
-    <footer class="daw-footer"><div class="footer-left"><button id="play-pause-btn" class="btn-play" disabled><i class="fa-solid fa-play"></i></button><div class="monitor-info"><span class="monitor-label">STUDIO MONITOR</span><span class="monitor-status" id="monitor-status">No Audio Rendered</span></div></div><div class="waveform-container"><canvas id="waveform-visualizer"></canvas><audio id="audio-player" style="display:none;"></audio></div><div class="footer-right" style="display:flex;gap:8px;align-items:center;"><select id="download-format" class="btn btn-secondary" style="background:var(--bg-darker);border:1px solid var(--border-color);padding:0 12px;height:38px;color:var(--text-main);font-family:inherit;font-size:.85rem;border-radius:6px;cursor:pointer;"><option value="wav">WAV Format</option><option value="mp3">MP3 Format</option><option value="midi">MIDI Format</option></select><a id="download-audio-btn" class="btn btn-secondary" disabled><i class="fa-solid fa-download"></i> Download</a></div></footer>
+    <footer class="daw-footer"><div class="footer-left"><button id="play-pause-btn" class="btn-play" disabled><i class="fa-solid fa-play"></i></button><div class="monitor-info"><span class="monitor-label">STUDIO MONITOR</span><span class="monitor-title" id="track-title">No track yet</span><span class="monitor-status" id="monitor-status">No Audio Rendered</span></div></div><div class="waveform-container"><canvas id="waveform-visualizer"></canvas><audio id="audio-player" style="display:none;"></audio></div><div class="footer-right" style="display:flex;gap:8px;align-items:center;"><select id="download-format" class="btn btn-secondary" style="background:var(--bg-darker);border:1px solid var(--border-color);padding:0 12px;height:38px;color:var(--text-main);font-family:inherit;font-size:.85rem;border-radius:6px;cursor:pointer;"><option value="wav">WAV Format</option><option value="mp3">MP3 Format</option><option value="midi">MIDI Format</option></select><a id="download-audio-btn" class="btn btn-secondary" disabled><i class="fa-solid fa-download"></i> Download</a></div></footer>
   </div>
   <script src="studio.js"></script>
 </body>

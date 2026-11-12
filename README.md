@@ -3,7 +3,7 @@
 <p align="center">
   <img src="static/favicon.svg" alt="Sesi Music">
   <br><br>
-  <img src="badges/version.svg" alt="sesi v1.9.0" height="25">
+  <img src="badges/version.svg" alt="sesi v1.9.2" height="25">
   <img src="badges/server.svg" alt="server :8080" height="25">
   <img src="badges/license.svg" alt="license MIT" height="25">
   <img src="badges/soundfont.svg" alt="soundfont GeneralUser GS" height="25">
@@ -247,6 +247,6 @@ npm run build   # Rebuild frontend (create/frontend.sesi)
 ## Resources
 
 - **Language Reference** → [`GUIDE.md`](./GUIDE.md) — complete Sesi syntax, builtins, and quirks
-- **Sesi Package** → [`@misterscan/sesi`](https://www.npmjs.com/package/@misterscan/sesi) v1.9.0
+- **Sesi Package** → [`@misterscan/sesi`](https://www.npmjs.com/package/@misterscan/sesi) v1.9.2
 - **SoundFont Docs** → [`sf2/GeneralUser-GS.md`](./sf2/GeneralUser-GS.md)
 - **Examples** → `examples/`
