@@ -1,5 +1,10 @@
 allow "helpers/safe" in as Safe
 
+let cover_art_guidelines = ""
+try {
+  cover_art_guidelines = Safe.readFile("getting-started/SVG-AND-PIXELS.md")
+} catch (err) {}
+
 let sf2_docs = ""
 try {
   sf2_docs = Safe.readFile("sf2/GeneralUser-GS.md")
@@ -104,6 +109,7 @@ Critical requirements:
 7. Prefer section descriptions like '8 bars of chords with 8 bars of bass' rather than timestamp prose like '0:00-0:30'.
 8. Follow the user's requested form and scope. For a song without a specified duration, design a developed arrangement with an ending; for a requested loop, design a loop. Give the exact bar count of each section and make the total consistent. The duration in 4/4 is bars * 240 / BPM.
 9. Plan native std/mpc sequencing with std/audio sounds and std/theory pitches. Preserve the requested instruments, track levels, pan and mutes. The studio swing input is 0 to 1; map it to MPC swing 50 to 75 with 50 + swing * 25.
+10. If the user request cover art, include a note to generate cover art including the user's input, slightly enhancing the visual prompt while maintaining the original concept and intent.
 
 Example Input: \"A calm sunset\"
 
@@ -156,7 +162,9 @@ try {
   show err
 }
 13. NEVER use the `+` operator for arrays, use `push()`.
-14. After render_song, ALWAYS export MIDI by calling: Audio.midi(\"output.mid\", all_tracks)
+14. There is NO ternary operator in Sesi. Use if/else statements instead. NO conditional expressions with `? :` are allowed.
+15. There is NO step operator in Sesi. Use loops or array manipulations instead.
+16. After render_song, ALWAYS export MIDI by calling: Audio.midi(\"output.mid\", all_tracks)
 
 ### PRESETS API CODE DEFINITION (Shows available methods on Presets module) ###
 " presets_code "
@@ -174,6 +182,12 @@ export fn get_stage1_prompt(prompt_text: string, config_text: string) -> string 
 }
 
 export fn get_stage2_prompt(brief: string) -> string {
+  if brief | contains("cover art") {
+    STAGE2_SYS = STAGE2_SYS | swap(
+      "16. After render_song, ALWAYS export MIDI by calling: Audio.midi(\"output.mid\", all_tracks)\n",
+      "16. After render_song, ALWAYS export MIDI by calling: Audio.midi(\"output.mid\", all_tracks)\n17. ONLY IF THE USER REQUESTS COVER ART, refer to the following documentation for drawing images using the std/draw API (only use pixel-based buffer, not the SVG!):\n" + cover_art_guidelines
+    )
+  }
   prompt stage2_prompt {STAGE2_SYS "
   Write a complete .sesi script based on this Musical Brief:
   " brief}

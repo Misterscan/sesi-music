@@ -27,26 +27,26 @@ allow "server/ai_handler" in with {clean_code}
   - Constructs the initial prompt using `Prompts.get_stage1_prompt`.
 */
 fn musicBrief(user, config) {
-    let stage1_prompt = Prompts.get_stage1_prompt(user, config)
-    let brief = ""
+  let stage1_prompt = Prompts.get_stage1_prompt(user, config)
+  let brief = ""
+  try {
+    TERM.info("Generating brief...\n")
+    brief = model("gpt-6-luna") {thinkingLevel: "low"} {stage1_prompt}
+    TERM.success("--> Brief Generated Successfully.")
+    show brief
+    TERM.newline()
+  } catch (e) {
     try {
-        TERM.info("Generating brief...\n")
-        brief = model("gpt-6-luna") {thinkingLevel: "medium"} {stage1_prompt}
-        TERM.success("--> Brief Generated Successfully.")
-        show brief
-        TERM.newline()
-    } catch (e) {
-        try {
-          brief = model("gemini-3.5-flash-lite") {thinkingLevel: "medium", temperature: 0.4} {stage1_prompt}
-          TERM.success("--> Brief Generated Successfully.")
-          show brief
-          TERM.newline()
-        } catch (err2) {
-          TERM.error("Stage 1 Error: " + e + err2)
-        }
+      brief = model("gemini-3.5-flash-lite") {thinkingLevel: "low"} {stage1_prompt}
+      TERM.success("--> Brief Generated Successfully.")
+      show brief
+      TERM.newline()
+    } catch (err2) {
+      TERM.error("Stage 1 Error: " + e + err2)
     }
-    if brief == "" { brief = user }
-    return brief
+  }
+  if brief == "" { brief = user }
+  return brief
 }
 
 /**
@@ -76,57 +76,57 @@ fn musicBrief(user, config) {
   - Triggers compilation via `sesi(path, true)`, expecting audio rendering to produce `output.wav`.
 */
 fn musicCode(brief, path) {
-    let code = ""
-    let last_error = ""
-    let success = false
-    let attempt = 0
-      
-    while attempt < 3 && success == false {
-        let attempt_num = attempt + 1
-        let current_prompt = ""
-        if attempt == 0 { current_prompt = Prompts.get_stage2_prompt(brief)
-        } else { current_prompt = Prompts.get_repair_prompt(last_error, code) }
-        
-        try {
-        if attempt == 0 {
-            try { code =  model("gpt-6-sol") {thinkingLevel: "medium", max_tokens: 8192} {current_prompt} } 
-            catch { code = model("gemini-3.7-flash") {thinkingLevel: "medium", temperature: 0.3, max_tokens: 8192} {current_prompt} }
-        } else {
-            TERM.warning("--> Attempt " + attempt_num + " Repairing code...")
-            try { code = model("gpt-6-luna") {thinkingLevel: "medium", max_tokens: 8192} {current_prompt} }
-            catch { code = model("gemini-3.5-flash-lite") {thinkingLevel: "medium", max_tokens: 8192} {current_prompt} }
-        }
-        code = clean_code(code)
-        Safe.writeFile(path, code)
-        TERM.info("--> Compiling Attempt " + attempt_num + "...")
-        sesi(path, true)
+  let code = ""
+  let last_error = ""
+  let success = false
+  let attempt = 0
+    
+  while attempt < 3 && success == false {
+    let attempt_num = attempt + 1
+    let current_prompt = ""
+    if attempt == 0 { current_prompt = Prompts.get_stage2_prompt(brief)
+    } else { current_prompt = Prompts.get_repair_prompt(last_error, code) }
+    
+    try {
+      if attempt == 0 {
+        try { code =  model("gpt-6-sol") {thinkingLevel: "medium"} {current_prompt} } 
+        catch { code = model("gemini-4-hydrogen") {thinkingLevel: "medium"} {current_prompt} }
+      } else {
+        TERM.warning("--> Attempt " + attempt_num + " Repairing code...")
+        try { code = model("gpt-6.1-terra") {thinkingLevel: "medium"} {current_prompt} }
+        catch { code = model("gemini-3.8-flash") {thinkingLevel: "medium"} {current_prompt} }
+      }
+      code = clean_code(code)
+      Safe.writeFile(path, code)
+      TERM.info("--> Compiling Attempt " + attempt_num + "...")
+      sesi(path, true)
           
-        // Sesi's render_song generates output.wav. We assume success if finished.
-        success = true
-        } catch (err) {
-        last_error = str(err)
-        TERM.error("--> Attempt " + attempt_num + " Failed: " + last_error)
-        attempt = attempt + 1
-        }
+      // Sesi's render_song generates output.wav. We assume success if finished.
+      success = true
+    } catch (err) {
+      last_error = str(err)
+      TERM.error("--> Attempt " + attempt_num + " Failed: " + last_error)
+      attempt = attempt + 1
     }
-    if success == false {
-        return {
-            status: false,
-            body: {
-                error: "Failed after 3 compilation attempts. Last error: " + last_error,
-                brief: brief,
-                code: code
-            }
-        }
-    } else {
-        return {
-            status: true,
-            body: {
-                brief: brief,
-                code: code
-            }
-        }
+  }
+  if success == false {
+    return {
+      status: false,
+      body: {
+        error: "Failed after 3 compilation attempts. Last error: " + last_error,
+        brief: brief,
+        code: code
+      }
     }
+  } else {
+    return {
+      status: true,
+      body: {
+        brief: brief,
+        code: code
+      }
+    }
+  }
 }
 
 /**
@@ -153,22 +153,22 @@ fn musicCode(brief, path) {
   ```
 
   Notes:
-  - Employs `gpt-5.6-terra` as the primary revision engine with fallback to `gemini-3.7-flash`.
+  - Employs `gpt-6.1-sol` as the primary revision engine with fallback to `gemini-4-hydrogen`.
   - Code is sanitized using `clean_code` and immediately validated by compiling with `sesi(outPath, true)`.
 */
 fn reviseCode(brief, user, code, outPath) {
-    let revise_prompt = Prompts.get_revision_prompt(brief, user, code)
-    TERM.info("Revising code for " + user + " with " + revise_prompt + "...")
-    try {
+  let revise_prompt = Prompts.get_revision_prompt(brief, user, code)
+  TERM.info("Revising code for " + user + " with " + revise_prompt + "...")
+  try {
     let new_code = ""
-    try { model("gpt-5.6-terra") {thinkingLevel: "low"} {revise_prompt} }
-    catch {new_code = model("gemini-3.7-flash") {thinkingLevel: "medium", temperature: 0.2} {revise_prompt} }
+    try { model("gpt-6.1-sol") {thinkingLevel: "medium"} {revise_prompt} }
+    catch {new_code = model("gemini-4-hydrogen") {thinkingLevel: "medium"} {revise_prompt} }
     new_code = clean_code(new_code)
     Safe.writeFile(outPath, new_code)
     sesi(outPath, true)
     return { status: true, body: {brief: brief, code: new_code} } }
     catch (e) { TERM.error(e); return {status: false, body: {error: "Revision failed: " + str(e), brief: brief, code: code}}
-    }
+  }
 }
 
 /**
@@ -205,22 +205,25 @@ export fn SesiMusic(user, outPath, config = "", script = null) {
   TERM.key_value("Output Path", outPath)
   TERM.key_value("Config", config)
   TERM.key_value("Reference script", script)
-    if config == "" {
-        config = {
-            tempo: "120",
-            swing: "0.0",
-            key: "",
-            structure: "",
-            genre: "",
-            mood: "",
-            instruments: "",
-            notes: ""
-        } | to_json
-    }
-    let req = musicBrief(user, config)
-    let code = ""
-    let revise = ""
-    if script != null { revise = reviseCode(req, user, script, outPath) } else { code = musicCode(req, outPath) }
-    if script != null && revise.status == false { revise = retry(musicCode(req, outPath), { max_retries: 2 }) } else { return "Script saved to " + outPath + " and song generated to output.wav" }
-    if code.status == false { code = retry(musicCode(req, outPath), { max_retries: 2 }) } else { return "Script saved to " + outPath + " and song generated to output.wav" }
+  if config == "" {
+    config = {
+      tempo: "120",
+      swing: "0.0",
+      key: "",
+      structure: "",
+      genre: "",
+      mood: "",
+      instruments: "",
+      notes: ""
+    } | to_json
+  }
+  let req = musicBrief(user, config)
+  let code = ""
+  let revise = ""
+  if script != null { revise = reviseCode(req, user, script, outPath) }
+  else { code = musicCode(req, outPath) }
+  if script != null && !revise.status { revise = retry(musicCode(req, outPath), { max_retries: 2 }) }
+  else { return "Script saved to " + outPath + " and song generated to output.wav" }
+  if !code.status { code = retry(musicCode(req, outPath), { max_retries: 2 }) }
+  else { return "Script saved to " + outPath + " and song generated to output.wav" }
 }

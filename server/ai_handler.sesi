@@ -72,7 +72,7 @@ export fn handle_ai(req) {
         try {
           if attempt == 0 {
             try { code =  model("gpt-6.1-sol") {thinkingLevel: "medium"} {current_prompt} }
-            catch { code = model("gemini-4-argon") {thinkingLevel: "medium", max_tokens: 10000} {current_prompt} }
+            catch { code = model("gemini-4-hydrogen") {thinkingLevel: "medium"} {current_prompt} }
           } else {
             show "--> Attempt" attempt_num "Repairing code..."
             try { code = model("gpt-6.1-terra") {thinkingLevel: "medium"} {current_prompt} }
@@ -136,7 +136,7 @@ export fn handle_ai(req) {
     try {
       let new_code = ""
       try { new_code = model("gpt-6.1-sol") {thinkingLevel: "medium"} {revise_prompt} }
-      catch { new_code = model("gemini-4-argon") {thinkingLevel: "medium", max_tokens: 10000} {revise_prompt} }
+      catch { new_code = model("gemini-4-hydrogen") {thinkingLevel: "medium"} {revise_prompt} }
       new_code = clean_code(new_code)
       Safe.writeFile(generated_song_path, new_code)
       sesi(generated_song_path, true)
