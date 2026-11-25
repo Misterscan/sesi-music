@@ -194,12 +194,15 @@ export fn get_stage2_prompt(brief: string) -> string {
   return stage2_prompt
 }
 
-export fn get_repair_prompt(last_error: string, code: string) -> string {
+export fn get_repair_prompt(brief: string, last_error: string, code: string) -> string {
   prompt repair_prompt {STAGE2_SYS "
-  The following .sesi code failed with error: " last_error "
-  Please fix the code so it compiles and runs perfectly. Output full corrected code only.
+  The following .sesi code failed with this concrete error: " last_error "
+  Musical Brief: " brief "
+  Please fix the error directly so it compiles and runs perfectly. Output full corrected code only. Do not make any other updates or changes outside of what is necessary to correct the error.
   Code:
-  " code}
+  " code "
+  ---
+  If the code if empty, provide a complete .sesi script that fulfills the Musical Brief."}
   return repair_prompt
 }
 

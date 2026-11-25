@@ -33,12 +33,14 @@ fn musicBrief(user, config) {
     TERM.info("Generating brief...\n")
     brief = model("gpt-6-luna") {thinkingLevel: "low"} {stage1_prompt}
     TERM.success("--> Brief Generated Successfully.")
+    show "Cost for this run: $" model_usage().total_cost_usd " USD"
     show brief
     TERM.newline()
   } catch (e) {
     try {
       brief = model("gemini-3.5-flash-lite") {thinkingLevel: "low"} {stage1_prompt}
       TERM.success("--> Brief Generated Successfully.")
+      show "Cost for this run (retry): $" model_usage().total_cost_usd " USD"
       show brief
       TERM.newline()
     } catch (err2) {
@@ -80,28 +82,34 @@ fn musicCode(brief, path) {
   let last_error = ""
   let success = false
   let attempt = 0
+  let proof = ""
     
   while attempt < 3 && success == false {
     let attempt_num = attempt + 1
     let current_prompt = ""
-    if attempt == 0 { current_prompt = Prompts.get_stage2_prompt(brief)
-    } else { current_prompt = Prompts.get_repair_prompt(last_error, code) }
+    if attempt == 0 { current_prompt = Prompts.get_stage2_prompt(brief) }
+    else { current_prompt = Prompts.get_repair_prompt(brief, last_error, code) }
     
     try {
       if attempt == 0 {
-        try { code =  model("gpt-6-sol") {thinkingLevel: "medium"} {current_prompt} } 
-        catch { code = model("gemini-4-hydrogen") {thinkingLevel: "medium"} {current_prompt} }
+        try { code =  model("gpt-6.2-sol") {thinkingLevel: "medium", max_tokens: 20000} {current_prompt} } 
+        catch { code = model("gemini-4-hydrogen") {thinkingLevel: "medium", max_tokens: 20000} {current_prompt} }
+        show "Cost for this run: $" model_usage().total_cost_usd " USD"
       } else {
         TERM.warning("--> Attempt " + attempt_num + " Repairing code...")
-        try { code = model("gpt-6.1-terra") {thinkingLevel: "medium"} {current_prompt} }
-        catch { code = model("gemini-3.8-flash") {thinkingLevel: "medium"} {current_prompt} }
+        try { code = model("gpt-6.1-terra") {thinkingLevel: "medium", max_tokens: 25000} {current_prompt} }
+        catch { code = model("gemini-3.8-flash") {thinkingLevel: "medium", max_tokens: 25000} {current_prompt} }
+        show "Cost for this run (repair "attempt_num"): $" model_usage().total_cost_usd " USD"
       }
       code = clean_code(code)
       Safe.writeFile(path, code)
       TERM.info("--> Compiling Attempt " + attempt_num + "...")
+      proof = read_file(path)
+      if proof == "" || !contains(proof, "output.wav") || !contains(proof, "render_wav") { raise_error("GenerationError", "Generated code is missing or incomplete") }
       sesi(path, true)
           
       // Sesi's render_song generates output.wav. We assume success if finished.
+      show "--> Compilation Success!"
       success = true
     } catch (err) {
       last_error = str(err)
@@ -114,6 +122,15 @@ fn musicCode(brief, path) {
       status: false,
       body: {
         error: "Failed after 3 compilation attempts. Last error: " + last_error,
+        brief: brief,
+        code: code
+      }
+    }
+  } else if proof == "" || !contains(proof, "output.wav") || !contains(proof, "render_wav") {
+    return {
+      status: false,
+      body: {
+        error: "Compilation succeeded but output is missing or incomplete.",
         brief: brief,
         code: code
       }
@@ -153,7 +170,7 @@ fn musicCode(brief, path) {
   ```
 
   Notes:
-  - Employs `gpt-6.1-sol` as the primary revision engine with fallback to `gemini-4-hydrogen`.
+  - Employs `gpt-6.2-sol` as the primary revision engine with fallback to `gemini-4-hydrogen`.
   - Code is sanitized using `clean_code` and immediately validated by compiling with `sesi(outPath, true)`.
 */
 fn reviseCode(brief, user, code, outPath) {
@@ -161,8 +178,9 @@ fn reviseCode(brief, user, code, outPath) {
   TERM.info("Revising code for " + user + " with " + revise_prompt + "...")
   try {
     let new_code = ""
-    try { model("gpt-6.1-sol") {thinkingLevel: "medium"} {revise_prompt} }
-    catch {new_code = model("gemini-4-hydrogen") {thinkingLevel: "medium"} {revise_prompt} }
+    try { model("gpt-6.2-sol") {thinkingLevel: "medium", max_tokens: 20000} {revise_prompt} }
+    catch {new_code = model("gemini-4-hydrogen") {thinkingLevel: "medium", max_tokens: 20000} {revise_prompt} }
+    show "Cost for this run: $" model_usage().total_cost_usd " USD"
     new_code = clean_code(new_code)
     Safe.writeFile(outPath, new_code)
     sesi(outPath, true)
@@ -215,15 +233,16 @@ export fn SesiMusic(user, outPath, config = "", script = null) {
       mood: "",
       instruments: "",
       notes: ""
-    } | to_json
+    } | to_json_str
   }
   let req = musicBrief(user, config)
   let code = ""
   let revise = ""
+  fn run_code() { return musicCode(req, outPath) }
   if script != null { revise = reviseCode(req, user, script, outPath) }
-  else { code = musicCode(req, outPath) }
-  if script != null && !revise.status { revise = retry(musicCode(req, outPath), { max_retries: 2 }) }
+  else { code = run_code() }
+  if script != null && !revise.status { revise = retry(run_code, { max_retries: 2 }) }
   else { return "Script saved to " + outPath + " and song generated to output.wav" }
-  if !code.status { code = retry(musicCode(req, outPath), { max_retries: 2 }) }
+  if !code.status || code == "" { code = retry(run_code, { max_retries: 2 }) }
   else { return "Script saved to " + outPath + " and song generated to output.wav" }
 }

@@ -240,6 +240,7 @@ npm run build   # Rebuild frontend (create/frontend.sesi)
 | Variable         | Description                                         |
 | ---------------- | --------------------------------------------------- |
 | `GEMINI_API_KEY` | Google Gemini API key for AI model calls            |
+| `OPENAI_API_KEY`  | OpenAI API key for AI model calls                  |
 | `SESI_PASSWORD`  | Passphrase for encrypted `.sesi` files and database |
 
 ---
